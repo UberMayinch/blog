@@ -5,15 +5,8 @@ permalink: /about/
 ---
 Hi, I'm Chinmay Sharma, A Computational Natural Sciences Sophomore at International Institute of Information Technology, Hyderabad.
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](https://jekyllrb.com/)
+My technial areas of interest primarily include Dynamical Systems and Chaos, Quantum Theory, Lie Groups, Representation Theory, Topology and Differential Geometry, Category Theory, Machine Learning.
 
-You can find the source code for Minima at GitHub:
-[jekyll][jekyll-organization] /
-[minima](https://github.com/jekyll/minima)
+I'm also interested in Eastern Theology (Yoga, Advaita Vedanta and Buddhism in particular), Psychoanalysis and weird Philosophies that have unique enough metaphysics. I periodically write poems or opinion pieces about these topics on my <a href="toomanycents.blogspot.com">Other blog</a>.
 
-You can find the source code for Jekyll at GitHub:
-[jekyll][jekyll-organization] /
-[jekyll](https://github.com/jekyll/jekyll)
-
-
-[jekyll-organization]: https://github.com/jekyll
+I play the drums in my free time. 
