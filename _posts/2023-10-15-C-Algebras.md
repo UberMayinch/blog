@@ -17,6 +17,7 @@ Formally, we start with the following:
    2. It is antihomomorphic:
 \
         $$(a b)^* = b^* a^*$$
+\  
    3. **C\* Property-** $$\|a * a\| = \|a\|^2$$
 
 A $$W^*$$ algebra is just a $$C^*$$ Algebra such that there exists a banach space which is it's dual. 
