@@ -2,7 +2,7 @@
 
 layout: post
 title: "C* and W* Algebras"
-usemathjax: true
+usemathjax: True
 
 ---
 I recently came across C and W algebras which are basically just formalizations of the spaces we do quantum mechanics in. 
