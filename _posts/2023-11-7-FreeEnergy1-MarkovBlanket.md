@@ -15,7 +15,7 @@ This sort of definition lends itself well to machine learning classifiers for ex
 
 For our intents and purposes though, the beauty of the FEP is seen when we take this definition as an axiom and build up from there. In the FEP, this notion of boundary is captured by idea of causality. A boundary then is a something that partitions a system into the external and internal, where there is no causal effect on the internal by the external. This is captured by the idea of Markov Blankets and boundaries which are concepts borrowed from machine learning.
 
-The intution I got for building up to the concept of a markov blanket is from this medium post which is well written- https://kuanjh123.medium.com/markov-blanket-8aaa416495c3. We start with the markov property. This just captures the intution of a transition that only depends on the current value; if we know the state of a system at present then we have as much information about it as can be known by having access to all previous states. 
+The intution I got for building up to the concept of a markov blanket is from this [medium post](https://kuanjh123.medium.com/markov-blanket-8aaa416495c3). We start with the markov property. This just captures the intution of a transition that only depends on the current value; if we know the state of a system at present then we have as much information about it as can be known by having access to all previous states. 
 
 **Definition 1:** A discrete time process is said to have the markov property if it satisfies the following:
 $$ \Pr(X_{n+1}=x \mid X_{n}=x_{n}) = \Pr (X_{n+1} = x \mid X_{1}=x_{1}, X_2=x_{2}, ... X_{n}=x_{n}$$ 
