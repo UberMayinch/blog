@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Algebras pt.1 
+title: Algebras 
 usemathjax: True
 ---
 
