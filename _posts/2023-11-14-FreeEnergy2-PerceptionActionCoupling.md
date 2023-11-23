@@ -1,6 +1,6 @@
 ---
-layout: Post
-Title: "Free Energy and Active Inference Part 2: Perception Action Coupling"
+layout: post
+title: "Free Energy and Active Inference Part 2: Perception Action Coupling"
 usemathjax: True
 ---
 
