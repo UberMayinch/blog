@@ -1,8 +1,7 @@
 ### Site Settings ###
 title               : Chinmay Sharma
 description         : >-
-                      Explore. Curate. Express.
-                      
+                      I'm Chinmay. I like complexity science, quantum theory, playing the drums, movement, poetry and philosophy. 
 baseurl             : "/"                     # Change to empty quotes if you are hosting your site at <your-username>.github.io directly
 repository          : UberMayinch/ubermayinch.github.io     # Change to <your-username>/<your-username>.github.io (or remove it if you don't need remote projects)
 remote_theme        : YoussefRaafatNasry/portfolYOU
@@ -25,16 +24,16 @@ nav_exclude:                                            # The following paths ar
 author:
   name              : Chinmay Sharma 
   image             : /photo
-  behance           : your_username
+#  behance           : your_username
 # dribbble          : your_username
-  email             : username@domain.com
-  facebook          : your_username
-  github            : UberMayinch
+#  email             : username@domain.com
+#  facebook          : your_username
+  github          : UberMayinch
 # gitlab            : your_username
-# instagram         : your_username
+  instagram         : your_username
 # kaggle            : your_username
   linkedin          : your_username
-  medium            : your_username
+#  medium            : your_username
 # soundcloud        : your_username
 # spotify           : your_username
 # stackoverflow     : your_user_id

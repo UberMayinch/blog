@@ -8,7 +8,14 @@ weight: 3
 # **About Me**
 
 Hi I am **{{ site.author.name }}** :wave:,<br>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+A Computational Natural Sciences Sophomore at International Institute of Information Technology, Hyderabad.
+
+My technial areas of interest primarily include Complex Systems and Chaos, Quantum Theory, Lie Groups, Representation Theory, Topology and Differential Geometry, Category Theory, Machine Learning. You can find my Research Statemtent here.
+
+I’m also interested in Eastern Theology (Yoga, Advaita Vedanta and Buddhism in particular), Psychoanalysis and weird Philosophies that have unique enough metaphysics. I periodically write poems or opinion pieces about these topics on my Other blog.
+
+I play the drums in my free time.
+
 
 <div class="row">
 {% include about/skills.html title="Programming Skills" source=site.data.programming-skills %}
