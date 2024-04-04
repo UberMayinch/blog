@@ -8,7 +8,7 @@ Hi! I'm Chinmay Sharma, A Computer Science and Computational Natural Sciences So
 
 My technical areas of interest primarily include using frameworks from interdisciplinary mathematical and computational disciplines to model different physical or biological phenomena. Using these same approaches for the interpretability/alignment is also a problem that deeply interests me. 
 
-I am interested in methods from Statistical mechanics, Category Theory, differential geometry, Nonlinear dynamics, Network Science, Mathematical Biology and Machine Learning at this point in time.
+I am building familiarity with methods from Statistical mechanics, Category Theory, differential geometry, Nonlinear dynamics, Network Science, Mathematical Biology and Machine Learning at this point in time.
 
 I’m deeply interested in understanding the mind and the world from other perspectives. In particular, Eastern metaphysics (such as Yoga, Advaita Vedanta, Kashmiri Shaivism and Buddhism), Psychoanalysis and weird Philosophies that have unique enough views of the world (The blog is named after a concept from D&G) really appeal to me.
 
