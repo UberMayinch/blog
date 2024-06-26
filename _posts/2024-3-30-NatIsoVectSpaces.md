@@ -1,8 +1,9 @@
 ---
 layout: post
 title: "Natural Isomorphisms in Vector Spaces"
-
+usemathjax: True
 ---
+
 Anyone taking an introductory course on linear algebra has probably seen the statement "There is a natural isomorphism between a vector space and its double dual"
 In some sense we realise that it makes sense. But what does it really mean? To prove this we need to set up a lot of category theory.
 
@@ -27,3 +28,10 @@ G(A) \arrow[r, swap, "G(f)"]
 & G(B)
 \end{tikzcd}
 $&
+
+$&\require{AMScd}
+\begin{CD}
+K(X) @>{ch}>> H(X;\mathbb Q);\\
+@VVV @VVV \\
+K(Y) @>{ch}>> H(Y;\mathbb Q);
+\end{CD}$&
