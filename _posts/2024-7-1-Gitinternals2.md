@@ -68,6 +68,11 @@ git cat-file -p
 This will print the contents of a file with a given hash to the terminal (though in most cases it would be binary gibberish).
 
 ```bash
+git update-index --add --cacheinfo 100644 path 
+```
+This actually adds the object at the given path to the index. The 100644 accounts for permissions and is the one which is most frequently used.
+
+```bash
 git write-tree
 ```
 this takes the index file and creates a tree object out of it and returns a hash of that tree object. this object is also added to the objects directory. Since our filesystem can be modelled as a tree, any changes will also be in a subtree (possibly improper) of the whole system. This means that having information in this format is actually enough for all the version control we may need. 
