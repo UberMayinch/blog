@@ -21,7 +21,7 @@ permalink: /about/
 </style>
 
 <div class="circular-image">
-    <img src="blog/assets/img/Chinmay-about.jpg" alt="Me in Formals">
+    <img src="/assets/img/Chinmay-about.jpg" alt="Me in Formals">
 </div>
 
 <p>Hi! I'm Chinmay Sharma, A Computer Science and Computational Natural Sciences Sophomore Undergraduate Researcher at International Institute of Information Technology, Hyderabad.</p>
