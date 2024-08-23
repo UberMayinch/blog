@@ -1,7 +1,6 @@
 ---
 layout: post
 title: "Random Walks and the Riemann Zeta Function"
-
 ---
 In this week's meeting of theory thursday, we discussed random walks in higher dimensions. Specifically the statement that a drunk human can return back to where they started from but a drunk bird can't. 
 This is related to the fact that in 2d a random walk is guaranteed to come back to the origin whereas in 3d the probability of this happening is vanishingly small.
