@@ -30,7 +30,9 @@ permalink: /about/
 
 <p>I am building familiarity with methods from Statistical mechanics, Category Theory, differential geometry, Nonlinear dynamics, Network Science, Mathematical Biology and Machine Learning at this point in time.</p>
 
-<p>I’m deeply interested in understanding the mind and the world from other perspectives. In particular, Eastern metaphysics (such as Yoga, Advaita Vedanta, Kashmiri Shaivism and Buddhism), Psychoanalysis and weird Philosophies that have unique enough views of the world (The blog is named after a concept from D&G) really appeal to me.</p>
+<p><a href="../assets/resume/cv.pdf" target="_blank">View my resume</a> to learn more about my projects and experience.</p>
+
+<p>I'm deeply interested in understanding the mind and the world from other perspectives. In particular, Eastern metaphysics (such as Yoga, Advaita Vedanta, Kashmiri Shaivism and Buddhism), Psychoanalysis and weird Philosophies that have unique enough views of the world (The blog is named after a concept from D&G) really appeal to me.</p>
 
 <p>I periodically write poems or opinion pieces about these topics on my <a href="https://toomanycents.blogspot.com/">Other blog</a>.</p>
 
