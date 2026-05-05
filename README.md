@@ -1,65 +1,79 @@
-# rhizoMorphic Blog (Typst Template)
+# rhizoMorphic
 
-This is a minimal, math-focused static site generator powered purely by **Typst** and Python. It was migrated from a Jekyll codebase to enable native math rendering and commutative diagrams (via Fletcher) without relying on heavy client-side JavaScript like MathJax or KaTeX.
+A minimal technical blog powered by [Typst](https://typst.app/) with server-side math rendering.
 
-## Features
-- **Native Typst Math**: All math is compiled to SVG server-side and integrated seamlessly with text.
-- **Commutative Diagrams**: Support for `fletcher` out of the box.
-- **Minimalist Aesthetic**: Clean, light grey, serif-based design.
-- **Zero Client-Side JS**: Fully static HTML output.
-- **Automated Deployments**: Ready-to-go GitHub Actions workflow.
+## Quick Start
 
-## Directory Structure
-```
-.
-├── typst/
-│   ├── build.py                    # The core static site generator script
-│   ├── css/
-│   │   └── style.css               # The styling
-│   ├── posts/                      # Your blog content in .typ files
-│   └── templates/                  # Typst templates for HTML wrappers
-│       ├── about.typ
-│       ├── base.typ
-│       └── post.typ
-├── assets/                         # Static assets (images, resumes)
-├── _site/                          # Build output directory (generated)
-└── .github/workflows/deploy.yml    # CI/CD deployment
+### Prerequisites
+
+- [Typst](https://github.com/typst/typst) (≥ 0.13)
+- Python 3.10+
+
+### Local Preview
+
+```bash
+python typst/build.py --local
+cd _site && python3 -m http.server 8080
 ```
 
-## Adding a New Post
-Simply create a new `.typ` file inside the `typst/posts/` folder. Use the following preamble to inject the site's layout:
+Then open [http://localhost:8080](http://localhost:8080).
+
+### Production Build
+
+```bash
+python typst/build.py
+```
+
+This builds with `/blog` as the base URL (for GitHub Pages at `username.github.io/blog`).
+
+## Writing a New Post
+
+Create a `.typ` file in `typst/posts/`:
 
 ```typst
 #import "../templates/post.typ": post
 
 #show: post.with(
-  title: "Your Awesome Title",
+  title: "Your Post Title",
   date: datetime(year: 2026, month: 5, day: 6),
-  tags: ("Math", "Computer Science"),
+  tags: ("Math", "Physics"),
 )
 
-Your content here.
-Inline math works flawlessly: $a^2 + b^2 = c^2$.
+Your content here. Inline math works natively: $E = m c^2$.
 
-And so does display math:
-$ 
-  f(x) = sum_(n=0)^infinity (f^((n))(a)) / n! (x - a)^n
-$
+Display math:
+
+$ integral_0^infinity e^(-x^2) dif x = sqrt(pi) / 2 $
 ```
 
-## Building Locally
-You can preview your blog by running the local build command, which removes the `/blog/` production prefix so that assets resolve correctly on `localhost`.
+The filename should follow the pattern `YYYY-M-D-Slug.typ` (e.g. `2024-3-30-NatIsoVectSpaces.typ`).
 
-```bash
-python typst/build.py --local
+Push to `main` and the GitHub Actions workflow handles the rest.
+
+## Project Structure
+
+```
+├── typst/
+│   ├── build.py              # Build script
+│   ├── css/style.css          # Site styling
+│   ├── templates/
+│   │   ├── base.typ           # Shared HTML layout (header, nav, footer)
+│   │   ├── post.typ           # Blog post template with math rendering
+│   │   └── about.typ          # About page
+│   └── posts/                 # Blog post source files (.typ)
+├── assets/                    # Static assets (images, PDFs)
+├── .github/workflows/
+│   └── deploy.yml             # GitHub Pages CI/CD
+└── _site/                     # Build output (gitignored)
 ```
 
-Then serve the `_site/` directory:
-```bash
-cd _site && python3 -m http.server 8080
-```
+## How It Works
 
-Open `http://localhost:8080` in your browser.
+- **Math**: Typst compiles math expressions to inline SVGs at build time — no client-side JavaScript needed.
+- **Diagrams**: Uses the [fletcher](https://typst.app/universe/package/fletcher) package for commutative diagrams.
+- **Post-processing**: The build script merges split paragraphs around inline math SVGs and injects the Buy Me a Coffee widget.
+- **Deployment**: On push to `main`, GitHub Actions installs Typst, runs the build, and deploys to GitHub Pages.
 
 ## Deployment
-Push your changes to the `main` or `master` branch. The included GitHub Actions workflow will automatically run the build script and deploy the `_site/` output to GitHub Pages.
+
+The site is configured to deploy via GitHub Actions. Make sure your repository's **Settings → Pages → Source** is set to **GitHub Actions** (not "Deploy from a branch").
