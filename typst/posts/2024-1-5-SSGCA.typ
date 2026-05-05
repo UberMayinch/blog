@@ -1,0 +1,19 @@
+#import "../templates/post.typ": post
+
+#show: post.with(
+  title: "Small Subgroup Confinement Attack",
+  date: datetime(year: 2024, month: 1, day: 5),
+  tags: ("Number Theory", "Cryptography"),
+)
+
+This is a neat number theory problem I came across while discussing the Diffie-Hellman Key Exchange in this week's meeting of the Theory Group of my college.
+
+The idea of the protocol is that we choose a generator $g$ and a prime $p$ which are shared over insecure channels. The two parties who want to communicate have their own numbers $a$ and $b$ for Alice and Bob respectively. These parties share $g^a$ and $g^b$ modulo $p$ over the network respectively. The other party receives the message and raises it to the power of their own secret key.
+
+The security of the exchange is guaranteed by the computational hardness of the Discrete Logarithm Problem.
+
+An interesting attack that can happen here is if a party intercepts the message. They have their own key $k$, and over the insecure channel they intercept the messages, sharing $g^(a k)$ and $g^(b k)$ instead.
+
+Using Fermat's Little Theorem we know that: $a^(p-1)$ is congruent to $1 mod p$. So, if we choose a suitable $k$, where the condition on $k$ is that $(p-1)$ should be divisible by $k$, we confine the possible keys to a small subgroup. I.e. instead of $g$ being a generator for the whole group, it only generates the members in a small subgroup.
+
+This can drastically reduce the computational cost and compromise the security of the channel.
