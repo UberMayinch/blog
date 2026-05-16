@@ -135,6 +135,9 @@ def build():
         shutil.rmtree(SITE_DIR)
     SITE_DIR.mkdir()
 
+    # Prevent GitHub Pages from running Jekyll on the output
+    (SITE_DIR / ".nojekyll").touch()
+
     # Copy static assets
     css_out = SITE_DIR / "css"
     css_out.mkdir()
