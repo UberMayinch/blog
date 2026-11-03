@@ -5,7 +5,7 @@ title = "rhizoMorphic"
 enableEmoji = true
 # Existing post URLs are mixed-case (/posts/2024-9-27-Variational-Bayes/).
 disablePathToLower = true
-disableKinds = ["taxonomy", "term", "RSS", "sitemap"]
+disableKinds = ["taxonomy", "term", "sitemap"]
 
 [params]
   author = "Chinmay Sharma"
