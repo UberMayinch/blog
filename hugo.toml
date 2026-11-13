@@ -1,5 +1,5 @@
 baseURL = "https://ubermayinch.github.io/blog/"
-languageCode = "en-us"
+locale = "en-us"
 title = "rhizoMorphic"
 
 enableEmoji = true

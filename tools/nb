@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 POSTS = ROOT / "content" / "posts"
 VENV = ROOT / ".venv"
 BIN = ROOT / ".bin"
-HUGO_VERSION = "0.152.0"  # keep in sync with .github/workflows/deploy.yml
+HUGO_VERSION = "0.170.0"  # keep in sync with .github/workflows/deploy.yml
 KERNEL = "blog"
 
 
