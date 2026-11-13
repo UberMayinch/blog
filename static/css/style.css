@@ -219,14 +219,10 @@ a.tab:hover { text-decoration: none; color: var(--fg); }
 a.sb-item:hover { background: var(--bg-hover); color: var(--fg); text-decoration: none; }
 button.sb-item:hover { background: var(--bg-hover); color: var(--fg); }
 .sb-msg { color: var(--fg); }
-.sb-vim { font-family: var(--mono); font-size: 11px; letter-spacing: .02em; color: var(--fg); }
-.sb-vim.is-visual { color: var(--orange); }
-.sb-vim.is-insert { color: var(--accent); }
-.sb-vim.is-off { color: var(--fg-subtle); }
-.sb-vim-keys { font-family: var(--mono); color: var(--fg); }
-.sb-vim-keys:empty { display: none; }
 .sb-spacer { flex: 1; }
-.sb-credit { color: var(--fg-muted); }
+.sb-credit { color: var(--fg-muted); min-width: 0; }
+.sb-support { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; color: var(--fg); }
+.sb-support .icon { width: 12px; height: 12px; color: var(--red); fill: currentColor; }
 
 /* ---------- Notebook ---------- */
 .nb-toolbar {
@@ -339,6 +335,30 @@ pre.out {
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 .dot--md { background: var(--graph-node); }
 .dot--tag { background: var(--graph-tag); }
+.support-card {
+  display: flex; align-items: center; gap: 14px;
+  max-width: 460px; padding: 12px 14px;
+  background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--fg);
+}
+.md a.support-card:hover { text-decoration: none; border-color: var(--focus); }
+.support-icon {
+  display: grid; place-items: center; flex: none;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--border); color: var(--orange);
+}
+.support-icon .icon { width: 22px; height: 22px; }
+.support-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.35; }
+.support-text strong { font-weight: 600; }
+.support-text span { font: 12px var(--mono); color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.support-cta {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 5px 12px; border-radius: 6px;
+  background: var(--green); color: #fff; font-size: 13px; font-weight: 600;
+}
+:root[data-theme=dark] .support-cta { background: #238636; }
+.support-cta .icon { width: 13px; height: 13px; fill: currentColor; }
+.support-card:hover .support-cta { filter: brightness(1.1); }
 table.dataframe { border-collapse: collapse; font: 12px/1.5 var(--ui); }
 table.dataframe th, table.dataframe td { padding: 4px 12px; border: 0; text-align: left; }
 table.dataframe thead th { border-bottom: 1px solid var(--border); font-weight: 600; }
@@ -346,6 +366,7 @@ table.dataframe tbody th { color: var(--fg-muted); font-weight: 600; text-align:
 table.dataframe tbody tr:nth-child(odd) { background: var(--bg-hover); }
 table.dataframe tbody tr:hover { background: var(--sel-bg); }
 .df-file { font-family: var(--mono); color: var(--fg-muted); }
+table.dataframe td:last-child { white-space: nowrap; }
 .df-file .file-icon { display: inline-grid; vertical-align: -3px; margin-right: 6px; }
 .nb.outputs-collapsed .cell-outputs { display: none; }
 .nb.outputs-collapsed .cell--code:has(.cell-outputs) .cell-main::after {
@@ -465,7 +486,7 @@ table.dataframe tbody tr:hover { background: var(--sel-bg); }
 @media (max-width: 760px) {
   :root { --gutter: 34px; }
   .titlebar { grid-template-columns: auto minmax(0, 1fr); }
-  .titlebar-nav, .cc-text + kbd, .sb-hide-sm, .activitybar, .sb-vim, .sb-vim-keys, #theme-name { display: none; }
+  .titlebar-nav, .cc-text + kbd, .sb-hide-sm, .activitybar, #theme-name { display: none; }
   .sidebar {
     display: none; position: fixed; z-index: 20; top: 35px; bottom: 22px; left: 0;
     width: min(300px, 85vw); box-shadow: 4px 0 18px rgba(1, 4, 9, .7);

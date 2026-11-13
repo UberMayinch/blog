@@ -66,12 +66,10 @@
   </div>
 
   <footer class="statusbar">
-    <span class="sb-item">{{ partial "icon.html" "branch" }}main</span>
-    <button type="button" class="sb-item sb-vim" id="vim-mode" data-act="toggle-vim" title="Vim keys (click to toggle)">-- NORMAL --</button>
-    <span class="sb-item sb-vim-keys" id="vim-keys"></span>
+    <span class="sb-item sb-hide-sm">{{ partial "icon.html" "branch" }}main</span>
+    <a class="sb-item sb-credit" href="{{ "" | relURL }}#cell-3" title="Support this blog">made with love by ubermayinch :) and claude<span class="sb-support">{{ partial "icon.html" "heart" }}support</span></a>
     <span class="sb-item sb-msg" id="status-msg" aria-live="polite"></span>
     <span class="sb-spacer"></span>
-    <span class="sb-item sb-credit">made with love by ubermayinch :) and claude</span>
     <span class="sb-item sb-hide-sm">{{ site.Params.author }}</span>
     <a class="sb-item sb-hide-sm" href="mailto:{{ site.Params.email }}">{{ partial "icon.html" "mail" }}{{ site.Params.email }}</a>
     <button type="button" class="sb-item" data-act="toggle-theme" title="Toggle color theme">{{ partial "icon.html" "theme" }}<span id="theme-name">GitHub Dark</span></button>
@@ -85,6 +83,5 @@
 {{- if .IsHome }}
 <script src="{{ "js/graph.js" | relURL }}" defer></script>
 {{- end }}
-{{ partial "buymeacoffee.html" . }}
 </body>
 </html>

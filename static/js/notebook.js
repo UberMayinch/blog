@@ -187,7 +187,6 @@
       case "copy-cell": if (cell) copyCells([+cell.dataset.i], `cell ${cell.dataset.i}`).then(() => flash(btn)); break;
       case "link-cell": if (cell) copyCellLink(+cell.dataset.i).then(() => flash(btn)); break;
       case "toggle-theme": toggleTheme(); break;
-      case "toggle-vim": toggleVim(); break;
       case "close-tab": e.preventDefault(); e.stopPropagation(); closeTab(btn.closest(".tab")); break;
       default: return;
     }
@@ -288,7 +287,6 @@
     if (dl) cmds.push({ title: "Download notebook (.ipynb)", desc: "", run: () => dl.click() });
     cmds.push({ title: "Toggle explorer", desc: "", run: toggleSidebar });
     cmds.push({ title: "Toggle color theme", desc: "GitHub Dark / Light", run: toggleTheme });
-    cmds.push({ title: "Toggle Vim mode", desc: vimOn ? "on" : "off", run: toggleVim });
     cmds.push({ title: "Go to home", desc: "", run: () => { location.href = $(".titlebar-brand").href; } });
     const about = $(".ab-item[title=About]");
     if (about) cmds.push({ title: "Go to about", desc: "", run: () => { location.href = about.href; } });
@@ -479,140 +477,7 @@
     const next = tab.previousElementSibling || tab.nextElementSibling;
     location.href = (next && next.dataset.tab) || $(".titlebar-brand").href;
   }
-  function cycleTab(step) {
-    const tabs = $$(".tab", tabsEl);
-    const i = tabs.findIndex((t) => t.classList.contains("is-active"));
-    const t = tabs[(i + step + tabs.length) % tabs.length];
-    if (t && t !== tabs[i]) location.href = t.dataset.tab;
-  }
 
   // Clicking a tag in the graph searches for it.
   window.addEventListener("rhizome:search", (e) => openPalette(e.detail));
-
-  /* ---------- Vim keys, VSCodeVim style: mode + pending keys in the status bar ---------- */
-  const vimEl = $("#vim-mode");
-  const vimKeys = $("#vim-keys");
-  const scroller = $("#editor-scroll");
-  const LINE = 40;
-  let vimOn = store.get("vim") !== "off";
-  let vmode = "NORMAL";
-  let pending = "";
-  let count = "";
-  let vStart = null;
-
-  function vimRender() {
-    if (!vimEl) return;
-    vimEl.classList.toggle("is-off", !vimOn);
-    vimEl.classList.toggle("is-visual", vimOn && vmode === "VISUAL LINE");
-    vimEl.classList.toggle("is-insert", vimOn && vmode === "INSERT");
-    vimEl.textContent = vimOn ? `-- ${vmode} --` : "VIM: off";
-    if (vimKeys) vimKeys.textContent = vimOn ? count + pending : "";
-  }
-  function toggleVim() {
-    vimOn = !vimOn;
-    store.set("vim", vimOn ? "on" : "off");
-    vmode = "NORMAL"; pending = ""; count = "";
-    vimRender();
-    status(vimOn ? "Vim keys on" : "Vim keys off");
-  }
-  document.addEventListener("focusin", (e) => { if (typing(e.target)) { vmode = "INSERT"; vimRender(); } });
-  document.addEventListener("focusout", (e) => { if (typing(e.target)) { vmode = "NORMAL"; vimRender(); } });
-
-  function visibleCellIdx() {
-    const top = scroller.getBoundingClientRect().top + 44;
-    const el = cellEls.find((c) => c.getBoundingClientRect().bottom > top);
-    return el ? +el.dataset.i : null;
-  }
-  const curIdx = () => (anchor !== null && selected.has(anchor) ? anchor : visibleCellIdx());
-  function moveCell(step) {
-    if (!cellEls.length) return;
-    const from = curIdx() ?? 0;
-    const to = Math.min(cellEls.length - 1, Math.max(0, from + step));
-    if (vmode === "VISUAL LINE" && vStart !== null) {
-      selected.clear();
-      for (let k = Math.min(vStart, to); k <= Math.max(vStart, to); k++) selected.add(k);
-      anchor = to;
-      renderSelection();
-    } else {
-      selectCell(to);
-    }
-    document.getElementById(`cell-${to}`)?.scrollIntoView({ block: "nearest" });
-  }
-  function yank(indices) {
-    if (!indices.length) return;
-    copyCells(indices, `${indices.length} cell${indices.length > 1 ? "s" : ""}`);
-  }
-
-  window.addEventListener("keydown", (e) => {
-    if (!vimOn || !scroller || paletteOpen() || typing(document.activeElement) || e.altKey || e.metaKey) return;
-    const key = e.key;
-    if (key === "Shift" || key === "Control") return;
-    const n = Math.max(1, parseInt(count || "1", 10));
-    let handled = true;
-
-    if (e.ctrlKey) {
-      if (key === "d") scroller.scrollBy(0, n * scroller.clientHeight / 2);
-      else if (key === "u") scroller.scrollBy(0, -n * scroller.clientHeight / 2);
-      else if (key === "e") scroller.scrollBy(0, n * LINE);
-      else if (key === "y") scroller.scrollBy(0, -n * LINE);
-      else handled = false;
-    } else if (pending) {
-      const seq = pending + key;
-      pending = "";
-      if (seq === "gg") {
-        if (count) moveCell(n - 1 - (curIdx() ?? 0)); else scroller.scrollTo(0, 0);
-      } else if (seq === "gt") cycleTab(1);
-      else if (seq === "gT") cycleTab(-1);
-      else if (seq === "za") toggleOutputs();
-      else if (seq === "zz") document.getElementById(`cell-${curIdx()}`)?.scrollIntoView({ block: "center" });
-      else if (seq === "yy") {
-        const i = curIdx();
-        if (i !== null) yank(Array.from({ length: Math.min(n, cellEls.length - i) }, (_, k) => i + k));
-      }
-    } else if (/^[0-9]$/.test(key) && (key !== "0" || count)) {
-      count += key;
-      vimRender();
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      return;
-    } else {
-      switch (key) {
-        case "j": vmode === "VISUAL LINE" ? moveCell(n) : scroller.scrollBy(0, n * LINE); break;
-        case "k": vmode === "VISUAL LINE" ? moveCell(-n) : scroller.scrollBy(0, -n * LINE); break;
-        case "h": scroller.scrollBy(-n * LINE, 0); break;
-        case "l": scroller.scrollBy(n * LINE, 0); break;
-        case "J": case "}": moveCell(n); break;
-        case "K": case "{": moveCell(-n); break;
-        case "G":
-          if (count) moveCell(n - 1 - (curIdx() ?? 0));
-          else scroller.scrollTo(0, scroller.scrollHeight);
-          break;
-        case "V": case "v":
-          if (vmode === "VISUAL LINE") { vmode = "NORMAL"; vStart = null; break; }
-          vStart = curIdx();
-          if (vStart === null) break;
-          vmode = "VISUAL LINE";
-          selectCell(vStart);
-          break;
-        case "y":
-          if (vmode === "VISUAL LINE") {
-            yank(sortedSelection());
-            vmode = "NORMAL"; vStart = null;
-            selected.clear(); renderSelection();
-          } else pending = "y";
-          break;
-        case "g": case "z": pending = key; break;
-        case ":": openPalette(">"); break;
-        case "Escape":
-          vmode = "NORMAL"; vStart = null;
-          handled = false; // the generic handler also clears the cell selection
-          break;
-        default: handled = false;
-      }
-    }
-    if (!pending || handled) count = pending ? count : "";
-    vimRender();
-    if (handled) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, true);
-  vimRender();
 })();

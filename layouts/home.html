@@ -8,6 +8,8 @@
 {{- $nTags := len (where $graph.nodes "k" "tag") -}}
 {{- $graphSrc := "from rhizome import vault\n\ng = vault.graph(edges=[\"tags\", \"links\", \"series\"])\ng.show()" -}}
 {{- $recentSrc := "vault.recent(5)" -}}
+{{- $supportURL := "https://buymeacoffee.com/ubermayinch" -}}
+{{- $supportText := "This project is reader-supported. If you found it valuable, you can support me through Buy Me a Coffee." -}}
 <article class="nb">
   <div class="nb-toolbar">
     <button type="button" class="tb-btn" data-act="copy-cells" title="Copy selected cells, or the whole page, as LLM context">
@@ -60,7 +62,7 @@
         <div class="cell-outputs">
           <div class="out out--html">
             <table class="dataframe">
-              <thead><tr><th></th><th>title</th><th>file</th><th>date</th></tr></thead>
+              <thead><tr><th></th><th>title</th><th class="df-file">file</th><th>date</th></tr></thead>
               <tbody>
               {{- range $i, $p := $recent }}
               {{- $f := partial "filename.html" $p }}
@@ -77,6 +79,22 @@
         </div>
       </div>
     </div>
+
+    <div class="cell cell--md" id="cell-3" data-i="3">
+      <div class="cell-gutter"></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "Markdown" }}
+        <div class="cell-md md">
+          <h2>Support</h2>
+          <p>{{ $supportText }}</p>
+          <a class="support-card" href="{{ $supportURL }}" target="_blank" rel="noopener">
+            <span class="support-icon">{{ partial "icon.html" "coffee" }}</span>
+            <span class="support-text"><strong>Buy me a coffee</strong><span>{{ strings.TrimPrefix "https://" $supportURL }}</span></span>
+            <span class="support-cta">{{ partial "icon.html" "heart" }}Support</span>
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
   {{- $rows := slice -}}
@@ -84,7 +102,8 @@
   {{- $payload := dict "title" site.Title "url" site.Home.Permalink "date" (now.Format "2006-01-02") "cells" (slice
         (dict "type" "markdown" "src" (printf "# %s\n\n%s" site.Title site.Params.description))
         (dict "type" "code" "lang" "python" "src" $graphSrc "out" (printf "<Graph: %d nodes, %d edges>" $nPosts (len $graph.links)))
-        (dict "type" "code" "lang" "python" "src" $recentSrc "out" (delimit $rows "\n"))) -}}
+        (dict "type" "code" "lang" "python" "src" $recentSrc "out" (delimit $rows "\n"))
+        (dict "type" "markdown" "src" (printf "## Support\n\n%s %s" $supportText $supportURL))) -}}
   <script type="application/json" id="nb-data">{{ $payload | jsonify | safeJS }}</script>
 </article>
 {{ end }}

@@ -38,15 +38,11 @@ single Markdown cell.
 - **Home** is `home.ipynb`: cell `[1]` outputs an Obsidian-style knowledge
   graph (notes, tags; edges from front-matter `tags`, links to other posts
   such as `[x](/posts/2024-3-30-NatIsoVectSpaces)` or `[[2024-3-30-NatIsoVectSpaces]]`,
-  and series like `AFWeek1…6`). Cell `[2]` lists the 5 newest posts. The code
-  shown there is decoration (`layouts/home.html`, `static/js/graph.js`).
+  and series like `AFWeek1…6`). Cell `[2]` lists the 5 newest posts; the last
+  cell is the reader-support note with a Buy Me a Coffee card (no third-party
+  script). The status-bar credit links to it. The code shown there is decoration (`layouts/home.html`, `static/js/graph.js`).
 - **Tabs**: a post opens as an italic preview tab; double-click keeps it open
   for the browser session.
-- **Vim** (VSCodeVim-style, mode in the status bar; click it to turn off):
-  `j`/`k` scroll, `Ctrl-d`/`Ctrl-u` half page, `gg`/`G` top/bottom,
-  `J`/`K` or `{`/`}` previous/next cell, `V` visual-line over cells,
-  `y` / `yy` / `3yy` yank cells as LLM context, `za` fold outputs, `gt`/`gT`
-  tabs, `:` commands, `/` search. Counts work (`5j`, `3G`).
 - **Theme**: status-bar toggle between GitHub Dark and GitHub Light. Syntax
   colors for both live in `static/css/chroma.css` (Chroma uses classes).
 
