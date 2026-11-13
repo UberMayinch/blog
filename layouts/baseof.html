@@ -1,38 +1,90 @@
 <!DOCTYPE html>
-<html lang="{{ site.LanguageCode | default "en" }}">
+<html lang="{{ site.LanguageCode | default "en" }}" data-theme="dark">
 <head>
   <meta charset="utf-8">
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} — {{ site.Title }}{{ end }}</title>
+  <title>{{ if .IsHome }}{{ site.Title }}{{ else }}{{ .Title }} · {{ site.Title }}{{ end }}</title>
   <meta name="description" content="{{ .Description | default site.Params.description }}">
+  <meta name="theme-color" content="#010409">
+  {{ with .OutputFormats.Get "rss" }}<link rel="alternate" type="application/rss+xml" href="{{ .RelPermalink }}" title="{{ site.Title }}">{{ end }}
+  {{- if not .IsHome }}{{ with site.Home.OutputFormats.Get "rss" }}<link rel="alternate" type="application/rss+xml" href="{{ .RelPermalink }}" title="{{ site.Title }}">{{ end }}{{ end }}
   <link rel="stylesheet" href="{{ "css/katex/katex.min.css" | relURL }}">
   <link rel="stylesheet" href="{{ "css/style.css" | relURL }}">
+  <link rel="stylesheet" href="{{ "css/chroma.css" | relURL }}">
 </head>
+{{- $file := partial "filename.html" . -}}
 <body>
-  <header class="site-header">
-    <div class="wrapper">
-      <a class="site-title" href="{{ "" | relURL }}">{{ site.Title }}</a>
-      <nav class="site-nav">
-        {{ range site.Menus.main }}
-        <a class="page-link" href="{{ .URL }}">{{ .Name }}</a>
-        {{ end }}
-      </nav>
-    </div>
+<div class="workbench" id="workbench">
+  <header class="titlebar">
+    <button type="button" class="titlebar-menu" data-act="toggle-sidebar" aria-label="Toggle explorer">{{ partial "icon.html" "menu" }}</button>
+    <a class="titlebar-brand" href="{{ "" | relURL }}">{{ site.Title }}</a>
+    <button type="button" class="command-center" data-act="palette" aria-label="Search posts and cells">
+      {{- partial "icon.html" "search" }}<span class="cc-text">Search {{ site.Title }}</span><kbd>Ctrl K</kbd>
+    </button>
+    <nav class="titlebar-nav">
+      {{- range site.Menus.main }}<a href="{{ .URL }}">{{ .Name }}</a>{{ end -}}
+    </nav>
   </header>
 
-  <main class="page-content">
-    <div class="wrapper">
-      {{ block "main" . }}{{ end }}
-    </div>
-  </main>
+  <div class="workbench-body">
+    <nav class="activitybar" aria-label="Activity bar">
+      <button type="button" class="ab-item is-active" data-act="toggle-sidebar" title="Explorer" aria-label="Toggle explorer">{{ partial "icon.html" "files" }}</button>
+      <button type="button" class="ab-item" data-act="palette" title="Search (Ctrl+K)" aria-label="Search">{{ partial "icon.html" "search" }}</button>
+      <span class="ab-spacer"></span>
+      {{- with site.Home.OutputFormats.Get "rss" }}<a class="ab-item" href="{{ .RelPermalink }}" title="RSS feed" aria-label="RSS feed">{{ partial "icon.html" "rss" }}</a>{{ end }}
+      <a class="ab-item" href="{{ "about/" | relURL }}" title="About" aria-label="About">{{ partial "icon.html" "account" }}</a>
+    </nav>
 
-  <footer class="site-footer">
-    <div class="wrapper">
-      <p>{{ site.Params.author }} · {{ site.Params.email }}</p>
-      <p class="description">{{ site.Params.description }}</p>
-    </div>
+    {{ partial "explorer.html" . }}
+
+    <section class="editor">
+      {{- /* VS Code tabs: home.ipynb stays put; the open post is an italic preview
+             tab (double-click pins it). static/js/notebook.js restores pinned tabs. */}}
+      <div class="tabs" id="tabs" role="tablist">
+        <a class="tab{{ if .IsHome }} is-active{{ end }}" role="tab" href="{{ "" | relURL }}" data-tab="{{ "" | relURL }}" aria-selected="{{ .IsHome }}">
+          {{- partial "icon.html" "notebook" }}<span class="tab-label">home.ipynb</span></a>
+        {{- if not .IsHome }}
+        <div class="tab is-active is-preview" role="tab" aria-selected="true" data-tab="{{ .RelPermalink }}" data-name="{{ $file.name }}" data-icon="{{ $file.icon }}" title="{{ .Title }} · double-click to keep open">
+          {{- partial "icon.html" $file.icon }}<span class="tab-label">{{ $file.name }}</span>
+          <button type="button" class="tab-close" data-act="close-tab" aria-label="Close tab">×</button></div>
+        {{- end }}
+      </div>
+      <div class="breadcrumbs">
+        <a href="{{ "" | relURL }}">{{ site.Title }}</a>
+        {{- if not .IsHome }}
+        {{- with .Section }}{{ partial "icon.html" "chevron" }}<span>{{ . }}</span>{{ end }}
+        {{- partial "icon.html" "chevron" }}<span>{{ $file.name }}</span>
+        {{- end }}
+      </div>
+      <div class="editor-scroll" id="editor-scroll">
+        <main class="editor-content">
+          {{ block "main" . }}{{ end }}
+        </main>
+      </div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <span class="sb-item">{{ partial "icon.html" "branch" }}main</span>
+    <button type="button" class="sb-item sb-vim" id="vim-mode" data-act="toggle-vim" title="Vim keys (click to toggle)">-- NORMAL --</button>
+    <span class="sb-item sb-vim-keys" id="vim-keys"></span>
+    <span class="sb-item sb-msg" id="status-msg" aria-live="polite"></span>
+    <span class="sb-spacer"></span>
+    <span class="sb-item sb-credit">made with love by ubermayinch :) and claude</span>
+    <span class="sb-item sb-hide-sm">{{ site.Params.author }}</span>
+    <a class="sb-item sb-hide-sm" href="mailto:{{ site.Params.email }}">{{ partial "icon.html" "mail" }}{{ site.Params.email }}</a>
+    <button type="button" class="sb-item" data-act="toggle-theme" title="Toggle color theme">{{ partial "icon.html" "theme" }}<span id="theme-name">GitHub Dark</span></button>
+    <span class="sb-item sb-hide-sm">{{ if .IsHome }}{{ "{}" }} Jupyter Notebook{{ else if .Resources.GetMatch "*.ipynb" }}{{ "{}" }} Jupyter Notebook{{ else if .IsPage }}Markdown{{ else }}{{ site.Title }}{{ end }}</span>
   </footer>
+</div>
 
-  {{ partial "buymeacoffee.html" . }}
+{{ partial "palette.html" . }}
+<script>window.SEARCH_INDEX = {{ (site.Home.OutputFormats.Get "json").RelPermalink }};</script>
+<script src="{{ "js/notebook.js" | relURL }}" defer></script>
+{{- if .IsHome }}
+<script src="{{ "js/graph.js" | relURL }}" defer></script>
+{{- end }}
+{{ partial "buymeacoffee.html" . }}
 </body>
 </html>

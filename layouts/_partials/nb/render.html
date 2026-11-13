@@ -1,0 +1,50 @@
+{{- /* Renders parsed notebook cells (see nb/parse.html) VS Code style. */ -}}
+{{- $nb := .nb -}}
+{{- $names := dict "python" "Python" "cpp" "C++" "c" "C" "bash" "Shell" "latex" "LaTeX" "html" "HTML" "js" "JavaScript" "markdown" "Markdown" "julia" "Julia" "rust" "Rust" "haskell" "Haskell" "lean" "Lean" -}}
+<div class="cells">
+{{- range $nb.cells }}
+  {{- if eq .type "markdown" }}
+  <div class="cell cell--md{{ if .math }} cell--math{{ end }}" id="cell-{{ .i }}" data-i="{{ .i }}">
+    <div class="cell-gutter"></div>
+    <div class="cell-main">
+      {{ partial "nb/cell-toolbar.html" (cond .math "TeX" "Markdown") }}
+      <div class="cell-md md">{{ .html }}</div>
+    </div>
+  </div>
+  {{- else if eq .type "code" }}
+  <div class="cell cell--code" id="cell-{{ .i }}" data-i="{{ .i }}">
+    <div class="cell-gutter"><span class="exec-count">[{{ with .count }}{{ . }}{{ else }}&nbsp;{{ end }}]</span></div>
+    <div class="cell-main">
+      {{ partial "nb/cell-toolbar.html" "" }}
+      <div class="cell-editor">
+        {{- with .magic }}<div class="cell-magic">{{ . }}</div>{{ end -}}
+        {{- if .body }}{{ transform.Highlight .body .lang "" }}{{ else }}<pre class="cell-empty"> </pre>{{ end -}}
+        <span class="cell-lang">{{ index $names .lang | default .lang }}</span>
+      </div>
+      {{- with .outputs }}
+      <div class="cell-outputs">
+        {{- range . }}
+          {{- if eq .kind "text" }}<pre class="out out--text">{{ .value }}</pre>
+          {{- else if eq .kind "stderr" }}<pre class="out out--stderr">{{ .value }}</pre>
+          {{- else if eq .kind "error" }}<pre class="out out--error">{{ .value }}</pre>
+          {{- else if eq .kind "img" }}<div class="out out--img"><img src="{{ .value | safeURL }}" alt="cell output" loading="lazy"></div>
+          {{- else if eq .kind "svg" }}<div class="out out--img">{{ .value | safeHTML }}</div>
+          {{- else if eq .kind "html" }}<div class="out out--html">{{ .value | safeHTML }}</div>
+          {{- else if eq .kind "md" }}<div class="out out--md md">{{ .value }}</div>
+          {{- end }}
+        {{- end }}
+      </div>
+      {{- end }}
+    </div>
+  </div>
+  {{- else }}
+  <div class="cell cell--raw" id="cell-{{ .i }}" data-i="{{ .i }}">
+    <div class="cell-gutter"></div>
+    <div class="cell-main">
+      {{ partial "nb/cell-toolbar.html" "Raw" }}
+      <div class="cell-editor"><pre class="out out--text">{{ .src }}</pre></div>
+    </div>
+  </div>
+  {{- end }}
+{{- end }}
+</div>

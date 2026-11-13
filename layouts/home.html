@@ -1,12 +1,90 @@
 {{ define "main" }}
-<div class="home">
-  <ul class="post-list">
-    {{ range where site.RegularPages "Section" "posts" }}
-    <li>
-      <span class="post-meta">{{ .Date.Format "Jan 2, 2006" }}</span>
-      <h3><a class="post-link" href="{{ .RelPermalink }}">{{ .Title }}</a></h3>
-    </li>
-    {{ end }}
-  </ul>
-</div>
+{{- /* The home page is dressed as a notebook: an intro cell, a "cell" whose
+       output is the knowledge graph, and one listing the five newest posts.
+       The code shown is decoration; nothing executes. */ -}}
+{{- $graph := partial "graph-data.html" . -}}
+{{- $recent := first 5 (where site.RegularPages "Section" "posts") -}}
+{{- $nPosts := len (where $graph.nodes "k" "ne" "tag") -}}
+{{- $nTags := len (where $graph.nodes "k" "tag") -}}
+{{- $graphSrc := "from rhizome import vault\n\ng = vault.graph(edges=[\"tags\", \"links\", \"series\"])\ng.show()" -}}
+{{- $recentSrc := "vault.recent(5)" -}}
+<article class="nb">
+  <div class="nb-toolbar">
+    <button type="button" class="tb-btn" data-act="copy-cells" title="Copy selected cells, or the whole page, as LLM context">
+      {{- partial "icon.html" "copy" }}<span data-label>Copy as context</span></button>
+    <button type="button" class="tb-btn" data-act="palette">{{ partial "icon.html" "search" }}<span>Search</span></button>
+    <a class="tb-btn" href="{{ "about/" | relURL }}">{{ partial "icon.html" "account" }}<span>About</span></a>
+    <span class="tb-spacer"></span>
+    <span class="tb-kernel" title="Kernel">{{ partial "icon.html" "kernel" }}Python 3 (blog)</span>
+  </div>
+
+  <div class="cells">
+    <div class="cell cell--md" id="cell-0" data-i="0">
+      <div class="cell-gutter"></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "Markdown" }}
+        <div class="cell-md md">
+          <h1>{{ site.Title }}</h1>
+          <p>{{ site.Params.description }} A log of what I read and work through, written by hand.
+          Press <kbd>Ctrl K</kbd> to search every post and cell.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell cell--code" id="cell-1" data-i="1">
+      <div class="cell-gutter"><span class="exec-count">[1]</span></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "" }}
+        <div class="cell-editor">{{ transform.Highlight $graphSrc "python" "" }}<span class="cell-lang">Python</span></div>
+        <div class="cell-outputs">
+          <div class="out out--graph" data-graph>
+            <canvas aria-label="Knowledge graph of posts, tags and links" role="img"></canvas>
+            <div class="graph-legend">
+              <span><i class="dot dot--md"></i>{{ $nPosts }} notes</span>
+              <span><i class="dot dot--tag"></i>{{ $nTags }} tags</span>
+              <span>{{ len $graph.links }} links</span>
+            </div>
+            <div class="graph-hint">scroll to zoom · drag to pan · click a note to open it</div>
+            <script type="application/json" class="graph-data">{{ $graph | jsonify | safeJS }}</script>
+          </div>
+          <pre class="out out--text">&lt;Graph: {{ $nPosts }} nodes, {{ len $graph.links }} edges&gt;</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell cell--code" id="cell-2" data-i="2">
+      <div class="cell-gutter"><span class="exec-count">[2]</span></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "" }}
+        <div class="cell-editor">{{ transform.Highlight $recentSrc "python" "" }}<span class="cell-lang">Python</span></div>
+        <div class="cell-outputs">
+          <div class="out out--html">
+            <table class="dataframe">
+              <thead><tr><th></th><th>title</th><th>file</th><th>date</th></tr></thead>
+              <tbody>
+              {{- range $i, $p := $recent }}
+              {{- $f := partial "filename.html" $p }}
+              <tr>
+                <th>{{ $i }}</th>
+                <td class="df-title"><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></td>
+                <td class="df-file"><span class="file-icon file-icon--{{ $f.icon }}">{{ partial "icon.html" $f.icon }}</span>{{ $f.name }}</td>
+                <td>{{ $p.Date.Format "2006-01-02" }}</td>
+              </tr>
+              {{- end }}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{- $rows := slice -}}
+  {{- range $i, $p := $recent }}{{ $rows = $rows | append (printf "%d  %s  %s  %s" $i $p.Title $p.RelPermalink ($p.Date.Format "2006-01-02")) }}{{ end -}}
+  {{- $payload := dict "title" site.Title "url" site.Home.Permalink "date" (now.Format "2006-01-02") "cells" (slice
+        (dict "type" "markdown" "src" (printf "# %s\n\n%s" site.Title site.Params.description))
+        (dict "type" "code" "lang" "python" "src" $graphSrc "out" (printf "<Graph: %d nodes, %d edges>" $nPosts (len $graph.links)))
+        (dict "type" "code" "lang" "python" "src" $recentSrc "out" (delimit $rows "\n"))) -}}
+  <script type="application/json" id="nb-data">{{ $payload | jsonify | safeJS }}</script>
+</article>
 {{ end }}

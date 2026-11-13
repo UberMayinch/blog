@@ -5,18 +5,25 @@ title = "rhizoMorphic"
 enableEmoji = true
 # Existing post URLs are mixed-case (/posts/2024-9-27-Variational-Bayes/).
 disablePathToLower = true
+# Daily posts are dated in IST; without this, a post dated today can be
+# "in the future" relative to the UTC CI runner and silently skipped.
+buildFuture = true
 disableKinds = ["taxonomy", "term", "sitemap"]
+
+# home.json is the Ctrl+K search index (layouts/home.json).
+[outputs]
+  home = ["html", "rss", "json"]
 
 [params]
   author = "Chinmay Sharma"
   email = "chinmay.sharma@research.iiit.ac.in"
-  description = "rhizoMorphic — Chinmay Sharma's Technical Blog."
+  description = "rhizoMorphic: Chinmay Sharma's Technical Blog."
 
 [markup]
   [markup.highlight]
-    # Inline styles: no separate syntax stylesheet to maintain.
-    noClasses = true
-    style = "github"
+    # CSS classes, colored by static/css/chroma.css so the theme can toggle.
+    noClasses = false
+    style = "github-dark"
     lineNos = false
     tabWidth = 2
 

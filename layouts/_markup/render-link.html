@@ -8,3 +8,4 @@
   {{- $dest = strings.TrimPrefix "/" $dest | relURL -}}
 {{- end -}}
 <a href="{{ $dest }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if hasPrefix (string .Destination) "http" }} target="_blank" rel="noopener"{{ end }}>{{ .Text }}</a>
+{{- /* Trim the file's trailing newline: it would leave a space before punctuation. */ -}}

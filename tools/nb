@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Daily notebook workflow for the blog.
+
+  tools/nb new [slug]       create today's notebook post (content/posts/YYYY-MM-DD[-slug]/)
+  tools/nb publish [post..] commit changed posts and push (GitHub Actions deploys)
+  tools/nb serve            local preview at http://localhost:1313/blog/
+  tools/nb setup            .venv with Jupyter kernel "blog" (Python + %%cpp), local Hugo
+
+Every post is a page bundle: index.md (front matter only) + notebook.ipynb.
+The notebook is the post. Its first "# Heading" becomes the post title on publish.
+"""
+
+import argparse
+import datetime as dt
+import json
+import os
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+POSTS = ROOT / "content" / "posts"
+VENV = ROOT / ".venv"
+BIN = ROOT / ".bin"
+HUGO_VERSION = "0.152.0"  # keep in sync with .github/workflows/deploy.yml
+KERNEL = "blog"
+
+
+def die(msg):
+    sys.exit(f"nb: {msg}")
+
+
+def run(cmd, **kw):
+    print("$", " ".join(str(c) for c in cmd))
+    return subprocess.run(cmd, cwd=ROOT, check=True, **kw)
+
+
+def git(*args):
+    return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout
+
+
+# ---------------------------------------------------------------- new
+def notebook_template():
+    return {
+        "cells": [
+            {"cell_type": "markdown", "metadata": {}, "source": []},
+            {"cell_type": "code", "execution_count": None, "metadata": {}, "outputs": [], "source": []},
+        ],
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3 (blog)", "language": "python", "name": KERNEL},
+            "language_info": {"name": "python"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+
+
+def cmd_new(a):
+    now = dt.datetime.now().astimezone()
+    name = now.strftime("%Y-%m-%d") + (f"-{a.slug}" if a.slug else "")
+    if not re.fullmatch(r"[\w.-]+", name):
+        die(f"bad slug: {a.slug!r} (letters, digits, - _ . only)")
+    bundle = POSTS / name
+    nb = bundle / "notebook.ipynb"
+    if bundle.exists():
+        print(f"exists: {nb.relative_to(ROOT)}")
+    else:
+        bundle.mkdir(parents=True)
+        (bundle / "index.md").write_text(
+            "---\n"
+            f'title: "{now.strftime("%B")} {now.day}, {now.year}"\n'
+            f"date: {now.isoformat(timespec='seconds')}\n"
+            "tags: []\n"
+            "draft: false\n"
+            "---\n"
+        )
+        nb.write_text(json.dumps(notebook_template(), indent=1) + "\n")
+        print(f"created: {nb.relative_to(ROOT)}")
+    if shutil.which("code") and not a.no_open:
+        subprocess.run(["code", str(ROOT), str(nb)])
+
+
+# ---------------------------------------------------------------- publish
+def changed_posts():
+    """Post paths (bundle dirs or .md files) with uncommitted changes."""
+    out = git("status", "--porcelain", "--untracked-files=all", "--", "content/posts")
+    posts = set()
+    for line in out.splitlines():
+        path = line[3:].split(" -> ")[-1].strip('"')
+        rel = Path(path).relative_to("content/posts")
+        posts.add(POSTS / rel.parts[0])
+    return sorted(posts)
+
+
+def load_nb(path):
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError as e:
+        die(f"{path.relative_to(ROOT)} is not valid JSON ({e}). Save it in VS Code and retry.")
+
+
+def src(cell):
+    s = cell.get("source", "")
+    return "".join(s) if isinstance(s, list) else s
+
+
+def heading_title(nb):
+    for cell in nb.get("cells", []):
+        if cell.get("cell_type") == "markdown":
+            m = re.match(r"\s*#\s+(.+)", src(cell))
+            return m.group(1).strip() if m else None
+    return None
+
+
+def set_front_matter(index, key, value):
+    text = index.read_text()
+    new, n = re.subn(rf"(?m)^{key}:.*$", f"{key}: {json.dumps(value, ensure_ascii=False)}", text, count=1)
+    if n and new != text:
+        index.write_text(new)
+        return True
+    return False
+
+
+def check_post(post, write=True):
+    """Returns (ok, label). Empty posts are skipped so stray stubs never go live."""
+    if post.is_dir():
+        nbs = list(post.glob("*.ipynb"))
+        index = post / "index.md"
+        if not nbs:
+            return (index.exists() and bool(re.sub(r"(?s)^---.*?---", "", index.read_text()).strip())), post.name
+        nb = load_nb(nbs[0])
+        if not any(src(c).strip() for c in nb.get("cells", [])):
+            return False, post.name
+        title = heading_title(nb)
+        if title and index.exists() and (not write or set_front_matter(index, "title", title)):
+            print(f"  {post.name}: title ← {title!r}")
+        return True, post.name
+    if post.suffix == ".md" and post.exists():
+        body = re.sub(r"(?s)^---.*?---", "", post.read_text()).strip()
+        return bool(body), post.name
+    return True, post.name  # deletion
+
+
+SITE_PATHS = ["layouts", "static", "assets", "hugo.toml", ".github"]
+
+
+def cmd_publish(a):
+    dirty = git("status", "--porcelain", "--", *SITE_PATHS).strip()
+    if dirty and not a.allow_dirty_site:
+        die("site files have uncommitted changes, so the deployed site would not match\n"
+            "your preview. Commit them first, or pass --allow-dirty-site:\n" + dirty)
+    posts = [ROOT / p if not Path(p).is_absolute() else Path(p) for p in a.posts] or changed_posts()
+    if not posts:
+        print("nothing to publish: no changed posts under content/posts/")
+        return
+    ready, skipped = [], []
+    for p in posts:
+        p = p.resolve()
+        if POSTS not in p.parents:
+            die(f"{p} is not under content/posts/")
+        while p.parent != POSTS:  # a file inside a bundle → the bundle
+            p = p.parent
+        ok, label = check_post(p, write=not a.dry_run)
+        (ready if ok else skipped).append((p, label))
+    for _, label in skipped:
+        print(f"skip (empty): {label}")
+    if not ready:
+        print("nothing to publish")
+        return
+    names = [label for _, label in ready]
+    print("publishing:", ", ".join(names))
+    if a.dry_run:
+        return
+    run(["git", "add", "--all", "--", *[str(p.relative_to(ROOT)) for p, _ in ready]])
+    if not git("diff", "--cached", "--name-only").strip():
+        print("no staged changes")
+        return
+    msg = f"post: {', '.join(names)}"
+    run(["git", "commit", "-m", msg, "--", *[str(p.relative_to(ROOT)) for p, _ in ready]])
+    if a.no_push:
+        print("committed; not pushed (--no-push)")
+        return
+    branch = git("branch", "--show-current").strip()
+    if branch not in ("main", "master"):
+        print(f"on branch {branch!r}: deploy only runs from main. Pushing anyway.")
+    run(["git", "push", "origin", branch])
+    print("pushed. GitHub Actions deploys in ~1 min: https://ubermayinch.github.io/blog/")
+
+
+# ---------------------------------------------------------------- serve / setup
+def hugo_bin():
+    local = BIN / "hugo"
+    return str(local) if local.exists() else shutil.which("hugo")
+
+
+def cmd_serve(a):
+    hugo = hugo_bin()
+    if not hugo:
+        die("hugo not found. Run: tools/nb setup")
+    os.execv(hugo, [hugo, "server", "-D", "--source", str(ROOT)])
+
+
+def install_hugo():
+    if hugo_bin():
+        print("hugo:", hugo_bin())
+        return
+    if platform.system() != "Linux" or platform.machine() not in ("x86_64", "AMD64"):
+        print("hugo: install it yourself (https://gohugo.io/installation/)")
+        return
+    url = (f"https://github.com/gohugoio/hugo/releases/download/v{HUGO_VERSION}/"
+           f"hugo_extended_{HUGO_VERSION}_linux-amd64.tar.gz")
+    print("downloading", url)
+    BIN.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory() as d:
+        tgz = Path(d) / "hugo.tgz"
+        urllib.request.urlretrieve(url, tgz)
+        with tarfile.open(tgz) as t:
+            t.extract("hugo", BIN, filter="data")
+    (BIN / "hugo").chmod(0o755)
+    print("hugo:", BIN / "hugo")
+
+
+def cmd_setup(a):
+    py = VENV / "bin" / "python"
+    if not py.exists():
+        run([sys.executable, "-m", "venv", str(VENV)])
+    run([str(py), "-m", "pip", "install", "--quiet", "--upgrade", "pip"])
+    run([str(py), "-m", "pip", "install", "--quiet", "-r", str(ROOT / "tools" / "requirements.txt")])
+    # Make tools/ importable (cppmagic) from any kernel in this venv.
+    site = subprocess.run([str(py), "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+    Path(site, "blog-tools.pth").write_text(str(ROOT / "tools") + "\n")
+    # Kernel "blog": the venv's Python with %%cpp preloaded. VS Code lists it
+    # under Select Kernel → Jupyter Kernel; new notebooks already point at it.
+    kdir = VENV / "share" / "jupyter" / "kernels" / KERNEL
+    kdir.mkdir(parents=True, exist_ok=True)
+    (kdir / "kernel.json").write_text(json.dumps({
+        "argv": [str(py), "-m", "ipykernel_launcher", "-f", "{connection_file}",
+                 "--InteractiveShellApp.extensions=cppmagic"],
+        "display_name": "Python 3 (blog)",
+        "language": "python",
+        "metadata": {"debugger": True},
+    }, indent=1) + "\n")
+    print("kernel:", kdir)
+    install_hugo()
+    if not shutil.which("g++"):
+        print("warning: g++ not found; %%cpp cells will fail")
+    print("done. In VS Code: select interpreter .venv/bin/python, kernel 'Python 3 (blog)'.")
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="nb", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("new", help="create today's notebook post")
+    p.add_argument("slug", nargs="?", help="optional suffix, e.g. 'spectral' → 2026-11-14-spectral")
+    p.add_argument("--no-open", action="store_true", help="don't open VS Code")
+    p.set_defaults(fn=cmd_new)
+    p = sub.add_parser("publish", help="commit changed posts and push")
+    p.add_argument("posts", nargs="*", help="post dirs/files (default: every changed post)")
+    p.add_argument("-n", "--dry-run", action="store_true", help="show what would be published")
+    p.add_argument("--no-push", action="store_true", help="commit only")
+    p.add_argument("--allow-dirty-site", action="store_true", help="publish despite uncommitted layout/config changes")
+    p.set_defaults(fn=cmd_publish)
+    sub.add_parser("serve", help="local preview").set_defaults(fn=cmd_serve)
+    sub.add_parser("setup", help="venv, kernel, hugo").set_defaults(fn=cmd_setup)
+    a = ap.parse_args()
+    a.fn(a)
+
+
+if __name__ == "__main__":
+    main()

@@ -8,12 +8,12 @@
 {{- if eq .Type "block" -}}
   {{- $tex = strings.TrimSuffix "$$" (strings.TrimPrefix "$$" $tex) -}}
   {{- $tex = strings.TrimSuffix "\\]" (strings.TrimPrefix "\\[" $tex) -}}
-  {{- $opts := dict "displayMode" true "output" "htmlAndMathml" "throwOnError" false "errorColor" "#cc0000" -}}
+  {{- $opts := dict "displayMode" true "output" "htmlAndMathml" "throwOnError" false "errorColor" "#f85149" -}}
   {{/* A span, not a div: display math often sits inside a paragraph. */}}
   <span class="math-block">{{ transform.ToMath $tex $opts }}</span>
 {{- else -}}
   {{- $tex = strings.TrimSuffix "$" (strings.TrimPrefix "$" $tex) -}}
   {{- $tex = strings.TrimSuffix "\\)" (strings.TrimPrefix "\\(" $tex) -}}
-  {{- $opts := dict "output" "htmlAndMathml" "throwOnError" false "errorColor" "#cc0000" -}}
+  {{- $opts := dict "output" "htmlAndMathml" "throwOnError" false "errorColor" "#f85149" -}}
   {{ transform.ToMath $tex $opts }}
 {{- end -}}

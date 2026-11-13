@@ -1,0 +1,61 @@
+{{- /*
+  Knowledge-graph data for the home page. Returns dict {nodes, links}.
+    nodes: {id, t (label), u (url), k: md | nb | tag, d (date)}
+    links: {s, t, k: tag | link | series}
+  Edges come from:
+    tag     a post's front-matter tags (tags are nodes, as in Obsidian)
+    link    a Markdown link to another post (".../posts/<name>") or [[name]]
+    series  posts whose file names share a stem: 2024-6-19-AFWeek1, ...-AFWeek2
+*/ -}}
+{{- $posts := where site.RegularPages "Section" "posts" -}}
+{{- $names := dict -}}
+{{- range $posts }}{{ $names = merge $names (dict (lower .File.ContentBaseName) .File.ContentBaseName) }}{{ end -}}
+
+{{- $nodes := slice -}}
+{{- $links := slice -}}
+{{- $tags := dict -}}
+{{- $series := dict -}}
+{{- range $posts.ByDate -}}
+  {{- $id := .File.ContentBaseName -}}
+  {{- $isNb := .Resources.GetMatch "*.ipynb" -}}
+  {{- $nodes = $nodes | append (dict "id" $id "t" .Title "u" .RelPermalink "k" (cond (not (not $isNb)) "nb" "md") "d" (.Date.Format "Jan 2, 2006")) -}}
+
+  {{- range .Params.tags -}}
+    {{- $tags = merge $tags (dict (lower .) .) -}}
+    {{- $links = $links | append (dict "s" $id "t" (printf "#%s" (lower .)) "k" "tag") -}}
+  {{- end -}}
+
+  {{- /* Series stem: drop the date, keep the part before the first "-", drop trailing digits. */ -}}
+  {{- $stem := replaceRE `^\d{4}-\d{1,2}-\d{1,2}-?` "" $id -}}
+  {{- $stem = lower (replaceRE `\d+$` "" (index (split $stem "-") 0)) -}}
+  {{- if $stem -}}
+    {{- with index $series $stem -}}
+      {{- $links = $links | append (dict "s" (index . (sub (len .) 1)) "t" $id "k" "series") -}}
+      {{- $series = merge $series (dict $stem (. | append $id)) -}}
+    {{- else -}}
+      {{- $series = merge $series (dict $stem (slice $id)) -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- /* Links to other posts, from the raw Markdown or the notebook's cells. */ -}}
+  {{- $text := .RawContent -}}
+  {{- if $isNb -}}
+    {{- $nb := partialCached "nb/parse.html" . .RelPermalink -}}
+    {{- range $nb.cells }}{{ if eq .type "markdown" }}{{ $text = printf "%s\n%s" $text .src }}{{ end }}{{ end -}}
+  {{- end -}}
+  {{- $seen := dict -}}
+  {{- range findRE `posts/[A-Za-z0-9_.-]+|\[\[[^\]|#]+` $text -}}
+    {{- $target := lower (strings.TrimSuffix "/" (replaceRE `^(posts/|\[\[)` "" .)) -}}
+    {{- with index $names $target -}}
+      {{- if and (ne . $id) (not (index $seen .)) -}}
+        {{- $seen = merge $seen (dict . true) -}}
+        {{- $links = $links | append (dict "s" $id "t" . "k" "link") -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- range $key, $label := $tags -}}
+  {{- $nodes = $nodes | append (dict "id" (printf "#%s" $key) "t" (printf "#%s" $label) "u" "" "k" "tag" "d" "") -}}
+{{- end -}}
+{{- return dict "nodes" $nodes "links" $links -}}

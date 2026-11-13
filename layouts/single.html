@@ -1,17 +1,46 @@
 {{ define "main" }}
-<article class="post">
-  <header class="post-header">
-    <h1 class="post-title">{{ .Title }}</h1>
-    {{ if not .Date.IsZero }}
-    <p class="post-meta">
-      {{ .Date.Format "January 2, 2006" }}
-      {{ with .Params.tags }} · {{ delimit . ", " }}{{ end }}
-    </p>
-    {{ end }}
-  </header>
-
-  <div class="post-content">
-    {{ .Content }}
+{{- $res := .Resources.GetMatch "*.ipynb" -}}
+{{- $payload := dict "title" .Title "url" .Permalink "date" (.Date.Format "2006-01-02") -}}
+{{- $nb := dict -}}
+{{- if $res }}{{ $nb = partialCached "nb/parse.html" . .RelPermalink }}{{ end -}}
+<article class="nb">
+  <div class="nb-toolbar">
+    <button type="button" class="tb-btn" data-act="copy-cells" title="Copy selected cells, or the whole page, as LLM context (Ctrl+C with cells selected)">
+      {{- partial "icon.html" "copy" }}<span data-label>Copy as context</span></button>
+    {{- if $res }}
+    <button type="button" class="tb-btn" data-act="toggle-outputs" title="Collapse or expand all outputs">{{ partial "icon.html" "fold" }}<span data-label>Collapse outputs</span></button>
+    <a class="tb-btn" href="{{ $res.RelPermalink }}" download="{{ .File.ContentBaseName }}.ipynb" title="Download the notebook">{{ partial "icon.html" "download" }}<span>.ipynb</span></a>
+    {{- end }}
+    <span class="tb-spacer"></span>
+    {{- if not .Date.IsZero }}<span class="tb-meta">{{ .Date.Format "Jan 2, 2006" }}{{ with .Params.tags }} · {{ delimit . ", " }}{{ end }}</span>{{ end }}
+    <span class="tb-kernel" title="Kernel">{{ partial "icon.html" "kernel" }}{{ if $res }}{{ $nb.kernel }}{{ else }}Markdown{{ end }}</span>
   </div>
+
+  {{- if $res }}
+  {{ partial "nb/render.html" (dict "nb" $nb "page" .) }}
+  {{- $cells := slice -}}
+  {{- range $nb.cells }}{{ $cells = $cells | append (dict "type" (cond .math "math" .type) "lang" .lang "src" .src "out" .outtext) }}{{ end -}}
+  {{- $payload = merge $payload (dict "cells" $cells) -}}
+  {{- else }}
+  {{- /* Plain Markdown post: shown as a title cell plus one rendered cell. */}}
+  <div class="cells">
+    <div class="cell cell--md" id="cell-0" data-i="0">
+      <div class="cell-gutter"></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "Markdown" }}
+        <div class="cell-md md"><h1>{{ .Title }}</h1></div>
+      </div>
+    </div>
+    <div class="cell cell--md" id="cell-1" data-i="1">
+      <div class="cell-gutter"></div>
+      <div class="cell-main">
+        {{ partial "nb/cell-toolbar.html" "Markdown" }}
+        <div class="cell-md md">{{ .Content }}</div>
+      </div>
+    </div>
+  </div>
+  {{- $payload = merge $payload (dict "cells" (slice (dict "type" "markdown" "src" (printf "# %s" .Title)) (dict "type" "markdown" "src" (strings.TrimSpace .RawContent)))) -}}
+  {{- end }}
+  <script type="application/json" id="nb-data">{{ $payload | jsonify | safeJS }}</script>
 </article>
 {{ end }}

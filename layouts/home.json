@@ -1,0 +1,21 @@
+{{- /*
+  Search index for the Ctrl+K palette: one entry per post, each with its
+  cells' searchable text. Notebook cells come from nb/parse.html (cached, so
+  this costs no second parse); Markdown posts are one plain-text cell.
+*/ -}}
+{{- $posts := slice -}}
+{{- range where site.RegularPages "Section" "posts" -}}
+  {{- $cells := slice -}}
+  {{- if .Resources.GetMatch "*.ipynb" -}}
+    {{- $nb := partialCached "nb/parse.html" . .RelPermalink -}}
+    {{- range $nb.cells -}}
+      {{- $text := .src -}}
+      {{- with .outtext }}{{ $text = printf "%s\n%s" $text . }}{{ end -}}
+      {{- $cells = $cells | append (dict "i" .i "k" (cond .math "math" (cond (eq .type "code") .lang .type)) "x" (substr $text 0 4000)) -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $cells = slice (dict "i" 1 "k" "markdown" "x" (substr .RawContent 0 20000)) -}}
+  {{- end -}}
+  {{- $posts = $posts | append (dict "t" .Title "u" .RelPermalink "d" (.Date.Format "Jan 2, 2006") "f" (partial "filename.html" .).name "g" (.Params.tags | default slice) "c" $cells) -}}
+{{- end -}}
+{{- $posts | jsonify -}}

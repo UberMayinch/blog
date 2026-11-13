@@ -1,0 +1,26 @@
+{{- /* Explorer sidebar: posts grouped into year folders, newest first. */ -}}
+{{- $cur := . -}}
+<aside class="sidebar" id="sidebar" aria-label="Explorer">
+  <div class="sidebar-title">Explorer</div>
+  <div class="sidebar-section">{{ partial "icon.html" "chevron" }}<span>{{ upper site.Title }}</span></div>
+  <ul class="tree">
+    {{- range (where site.RegularPages "Section" "posts").GroupByDate "2006" }}
+    <li>
+      <details open>
+        <summary class="tree-row tree-folder">{{ partial "icon.html" "chevron" }}<span>{{ .Key }}</span></summary>
+        <ul>
+          {{- range .Pages }}
+          {{- $f := partial "filename.html" . }}
+          <li><a class="tree-row tree-file{{ if eq . $cur }} is-active{{ end }}" href="{{ .RelPermalink }}" title="{{ .Title }}">
+            <span class="file-icon file-icon--{{ $f.icon }}">{{ partial "icon.html" $f.icon }}</span><span class="tree-label">{{ .Title }}</span></a></li>
+          {{- end }}
+        </ul>
+      </details>
+    </li>
+    {{- end }}
+    {{- with site.GetPage "/about" }}
+    <li><a class="tree-row tree-file tree-root{{ if eq . $cur }} is-active{{ end }}" href="{{ .RelPermalink }}">
+      <span class="file-icon file-icon--markdown">{{ partial "icon.html" "markdown" }}</span><span class="tree-label">about.md</span></a></li>
+    {{- end }}
+  </ul>
+</aside>

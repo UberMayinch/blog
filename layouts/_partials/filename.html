@@ -1,0 +1,10 @@
+{{- /* Explorer-style file name and icon for a page. Returns dict {name, icon}. */ -}}
+{{- $r := dict "name" .Title "icon" "file" -}}
+{{- if .IsHome -}}
+  {{- $r = dict "name" "home.ipynb" "icon" "notebook" -}}
+{{- else if .Resources.GetMatch "*.ipynb" -}}
+  {{- $r = dict "name" (printf "%s.ipynb" .File.ContentBaseName) "icon" "notebook" -}}
+{{- else if .File -}}
+  {{- $r = dict "name" (printf "%s.md" .File.ContentBaseName) "icon" "markdown" -}}
+{{- end -}}
+{{- return $r -}}

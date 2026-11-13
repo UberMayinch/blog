@@ -1,0 +1,6 @@
+{{- /* Hover toolbar at a cell's top-right. Context: optional label. */ -}}
+<div class="cell-toolbar">
+  {{- with . }}<span class="cell-kind">{{ . }}</span>{{ end -}}
+  <button type="button" class="icon-btn" data-act="copy-cell" title="Copy cell as LLM context" aria-label="Copy cell as LLM context">{{ partial "icon.html" "copy" }}</button>
+  <button type="button" class="icon-btn" data-act="link-cell" title="Copy link to this cell" aria-label="Copy link to this cell">{{ partial "icon.html" "link" }}</button>
+</div>

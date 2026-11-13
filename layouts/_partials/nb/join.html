@@ -1,0 +1,8 @@
+{{- /* nbformat stores multiline strings either as a string or a list of lines. */ -}}
+{{- $s := "" -}}
+{{- if reflect.IsSlice . -}}
+  {{- $s = delimit . "" -}}
+{{- else if . -}}
+  {{- $s = string . -}}
+{{- end -}}
+{{- return $s -}}

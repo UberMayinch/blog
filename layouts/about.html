@@ -1,8 +1,15 @@
 {{ define "main" }}
-<div class="about-page">
-  <h1 class="page-heading">{{ .Title }}</h1>
-  <div class="about-content">
-    {{ .Content }}
+<article class="nb">
+  <div class="cells">
+    <div class="cell cell--md" id="cell-0" data-i="0">
+      <div class="cell-gutter"></div>
+      <div class="cell-main">
+        <div class="cell-md md">
+          <h1>{{ .Title }}</h1>
+          {{ .Content }}
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</article>
 {{ end }}
