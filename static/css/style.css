@@ -391,6 +391,14 @@ table.dataframe td:last-child { white-space: nowrap; }
 }
 .cell--math.is-selected .cell-md { border-color: var(--focus); }
 
+/* Socratech journal roles (cell tags). Exercise: accent rule. Aside: margin note. */
+.cell--exercise .cell-md { border-left: 2px solid var(--orange); border-radius: 0 4px 4px 0; }
+.cell--verdict .cell-md { border-left: 2px solid var(--green); border-radius: 0 4px 4px 0; }
+.cell--aside .cell-md {
+  margin-left: auto; max-width: 32em;
+  border-left: 2px solid var(--fg-subtle); border-radius: 0;
+  color: var(--fg-muted); font-size: 13.5px;
+}
 /* ---------- Markdown typography (GitHub markdown-body, dark) ---------- */
 .md { font: 15px/1.65 var(--ui); color: var(--fg); word-wrap: break-word; }
 .md > :first-child { margin-top: 0 !important; }

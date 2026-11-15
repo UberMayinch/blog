@@ -4,10 +4,10 @@
 <div class="cells">
 {{- range $nb.cells }}
   {{- if eq .type "markdown" }}
-  <div class="cell cell--md{{ if .math }} cell--math{{ end }}" id="cell-{{ .i }}" data-i="{{ .i }}">
+  <div class="cell cell--md{{ if .math }} cell--math{{ end }}{{ with .role }} cell--{{ . }}{{ end }}" id="cell-{{ .i }}" data-i="{{ .i }}">
     <div class="cell-gutter"></div>
     <div class="cell-main">
-      {{ partial "nb/cell-toolbar.html" (cond .math "TeX" "Markdown") }}
+      {{ partial "nb/cell-toolbar.html" (cond .math "TeX" (cond (ne .role "") (title .role) "Markdown")) }}
       <div class="cell-md md">{{ .html }}</div>
     </div>
   </div>

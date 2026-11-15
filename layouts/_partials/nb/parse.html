@@ -10,6 +10,8 @@
     cells   slice of dict:
       i       0-based index (anchor #cell-i)
       type    markdown | code | raw
+      role    Socratech journal role from cell tags (exercise | attempt |
+              verdict | reflection | aside | agent | code) or ""
       math    true for math cells (checkered paper)
       lang    highlight language for code cells
       magic   leading %%magic line, shown apart from the highlighted body
@@ -42,13 +44,17 @@
 
 {{- $mathRE := `(?s)^\s*((\$\$.+?\$\$|\\\[.+?\\\])\s*)+$` -}}
 {{- $ansiRE := "\x1b\\[[0-9;?]*[A-Za-z]" -}}
+{{- /* Socratech journal exports tag each cell with its role. */ -}}
+{{- $roles := slice "exercise" "attempt" "verdict" "reflection" "aside" "agent" "code" -}}
 
 {{- $cells := slice -}}
 {{- range $i, $c := $nb.cells -}}
   {{- $src := partial "nb/join.html" $c.source -}}
   {{- $cm := $c.metadata | default dict -}}
   {{- $tags := $cm.tags | default slice -}}
-  {{- $cell := dict "i" $i "type" $c.cell_type "src" $src "body" $src "magic" "" "math" false "lang" "" "html" "" "count" nil "outputs" slice "outtext" "" -}}
+  {{- $role := "" -}}
+  {{- range $tags -}}{{- if and (not $role) (in $roles .) -}}{{- $role = . -}}{{- end -}}{{- end -}}
+  {{- $cell := dict "i" $i "type" $c.cell_type "role" $role "src" $src "body" $src "magic" "" "math" false "lang" "" "html" "" "count" nil "outputs" slice "outtext" "" -}}
 
   {{- if eq $c.cell_type "markdown" -}}
     {{- /* Math cell: only display math, the "math" tag, or a leading <!-- math --> comment. */ -}}
@@ -64,6 +70,7 @@
 
   {{- else if eq $c.cell_type "code" -}}
     {{- $lang := $nblang -}}
+    {{- with $cm.language -}}{{- $lang = index $alias (lower .) | default (lower .) -}}{{- end -}}
     {{- with $cm.vscode -}}{{- with .languageId -}}{{- $lang = index $alias (lower .) | default (lower .) -}}{{- end -}}{{- end -}}
     {{- $magic := "" -}}
     {{- $body := $src -}}
