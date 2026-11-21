@@ -1,0 +1,96 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"><script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>body{margin:0;background:#14161b;color:#e8e8e8;font-family:system-ui,sans-serif}#w{max-width:1000px;margin:auto;padding:10px}canvas{width:100%;display:block}
+#cap{font-size:19px;text-align:center;margin:8px 0 2px;min-height:28px}#f{text-align:center;min-height:44px;font-size:20px}
+.r{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin:8px}
+button{background:#23262e;color:#e8e8e8;border:1px solid #ffffff33;border-radius:8px;padding:8px 14px;font-size:15px;cursor:pointer}button:hover{background:#2f333d}
+#tg{border-color:#ff862f;color:#ff862f}#ind{color:#9aa0a6;min-width:50px;text-align:center}</style></head><body><div id="w">
+<canvas id="c"></canvas><div id="cap"></div><div id="f"></div>
+<div class="r"><button id="tg"></button></div>
+<div class="r"><button id="pv">◀ Prev</button><span id="ind"></span><button id="nx">Next ▶</button><button id="pl">▶ Play</button></div></div>
+<script>
+const B='#58c4dd',P='#ff77b4',G='#83c167',O='#ff862f',Y='#f4d345',R='#fc6255',M='#9aa0a6',W='#ccc';
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');let W_,H_,dpr;
+function rs(){dpr=devicePixelRatio||1;W_=cv.clientWidth;H_=Math.max(340,Math.min(W_*.62,innerHeight*.8));cv.style.height=H_+'px';cv.width=W_*dpr;cv.height=H_*dpr}
+addEventListener('resize',rs);rs();
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const col={k:W,e:W,x:B,y:P,z:G};
+const scenes=[
+{cap:'Step 1 — Start with the pairs you were given: x ∼ y, and kye ∼ z.',f:'x\\sim y,\\quad kye\\sim z',tg:null},
+{cap:'Step 2 — Closed under composition: equal pieces can be swapped inside any longer path.',f:'x\\sim y\\ \\Rightarrow\\ k\\,x\\,e\\ \\approx\\ k\\,y\\,e',tg:['Remove step 2 (see it fail)','Apply step 2']},
+{cap:'Step 3 — Closed under equivalence: things related to a common path must be related to each other.',f:'kxe\\approx kye\\sim z\\ \\Rightarrow\\ kxe\\approx z',tg:['Remove step 3 (see it fail)','Apply step 3']},
+{cap:'The aha: repeat until nothing new appears — the paths form one class, all "equal".',f:'\\approx\\ =\\ \\text{smallest equivalence closed under composition}',tg:null}];
+let sc=0,tv=0,cur=0,play=false,tm=0,sceneStart=performance.now(),lastT=performance.now();
+const tg=document.getElementById('tg');
+function katex_(el,s){try{katex.render(s,el,{throwOnError:false})}catch(e){el.textContent=s.replace(/\\/g,'')}}
+function setScene(i,fromPlay){sc=Math.max(0,Math.min(3,i));sceneStart=performance.now();tv=sc==0?1:(sc==3?1:0);
+ const s=scenes[sc];document.getElementById('cap').textContent=s.cap;katex_(document.getElementById('f'),s.f);
+ tg.style.display=s.tg?'':'none';updTg();document.getElementById('ind').textContent=(sc+1)+' / 4'}
+function updTg(){const s=scenes[sc];if(s.tg)tg.textContent=tv?s.tg[0]:s.tg[1]}
+tg.onclick=()=>{tv=tv?0:1;updTg()};
+pv.onclick=()=>{play=false;pl.textContent='▶ Play';setScene(sc-1)};nx.onclick=()=>{play=false;pl.textContent='▶ Play';setScene(sc+1)};
+pl.onclick=()=>{play=!play;pl.textContent=play?'❚❚ Pause':'▶ Play';if(play){if(sc==3)setScene(0);sceneStart=performance.now()}};
+addEventListener('keydown',e=>{if(e.key=='ArrowLeft')pv.onclick();else if(e.key=='ArrowRight')nx.onclick();else if(e.key==' '){e.preventDefault();pl.onclick()}});
+// geometry
+const N={a:[.1,.2],b:[.36,.2],c:[.64,.2],d:[.9,.2]};
+function pt(n){return[N[n][0]*W_,N[n][1]*H_]}
+const E={k:['a','b',0],x:['b','c',-.13],y:['b','c',.09],e:['c','d',0],z:['a','d',.28]};
+function edgeGeo(n){const[a,b,bend]=E[n],A=pt(a),Bp=pt(b);const m=[(A[0]+Bp[0])/2,(A[1]+Bp[1])/2+bend*H_*2];return[A,m,Bp]}
+function q(g,t){const[A,m,Bp]=g,u=1-t;return[u*u*A[0]+2*u*t*m[0]+t*t*Bp[0],u*u*A[1]+2*u*t*m[1]+t*t*Bp[1]]}
+function drawEdge(n,al,glow){const g=edgeGeo(n),c=col[n];ctx.save();ctx.globalAlpha=al;ctx.strokeStyle=c;ctx.lineWidth=glow?4:2;ctx.lineCap='round';if(glow){ctx.shadowColor=c;ctx.shadowBlur=14}
+ ctx.beginPath();ctx.moveTo(...g[0]);ctx.quadraticCurveTo(g[1][0],g[1][1],g[2][0],g[2][1]);ctx.stroke();
+ const p=q(g,.97),p2=q(g,.9),an=Math.atan2(p[1]-p2[1],p[0]-p2[0]);ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(p[0]+4*Math.cos(an),p[1]+4*Math.sin(an));ctx.lineTo(p[0]-9*Math.cos(an)+6*Math.sin(an),p[1]-9*Math.sin(an)-6*Math.cos(an));ctx.lineTo(p[0]-9*Math.cos(an)-6*Math.sin(an),p[1]-9*Math.sin(an)+6*Math.cos(an));ctx.fill();
+ const l=q(g,.5);ctx.shadowBlur=0;ctx.font='italic 17px serif';ctx.textAlign='center';ctx.fillText(n,l[0],l[1]+(n=='y'?20:n=='z'?20:-9));ctx.restore()}
+function drawNodes(){for(const n in N){const p=pt(n);ctx.fillStyle='#14161b';ctx.strokeStyle='#e8e8e8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p[0],p[1],11,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#e8e8e8';ctx.font='13px system-ui';ctx.textAlign='center';ctx.fillText(n,p[0],p[1]+4.5)}}
+const PATHS={kxe:['k','x','e'],kye:['k','y','e'],z:['z']};
+const DP={kxe:[.2,.86],kye:[.5,.86],z:[.8,.86]};
+function dp(n){return[DP[n][0]*W_,DP[n][1]*H_]}
+function label(n,al){const[x,y]=dp(n);const t=PATHS[n];ctx.save();ctx.globalAlpha=al;ctx.font='italic 19px serif';let w=0;t.forEach(c=>w+=ctx.measureText(c).width+1);let cx=x-w/2;ctx.textAlign='left';t.forEach(c=>{ctx.fillStyle=col[c];ctx.fillText(c,cx,y+30);cx+=ctx.measureText(c).width+1});ctx.restore()}
+function arcB(a,b,h,c,prog,dash,w){const A=dp(a),Bp=dp(b);ctx.save();ctx.strokeStyle=c;ctx.lineWidth=w||2.5;ctx.lineCap='round';if(dash)ctx.setLineDash([6,6]);
+ const m=[(A[0]+Bp[0])/2,A[1]-h];ctx.beginPath();const n=40;for(let i=0;i<=n*prog;i++){const p=q([A,m,Bp],i/n);i?ctx.lineTo(...p):ctx.moveTo(...p)}ctx.stroke();ctx.restore();return q([A,m,Bp],.5*Math.min(1,1))}
+function txt(s,x,y,c,sz,al){ctx.save();ctx.globalAlpha=al==null?1:al;ctx.fillStyle=c;ctx.font=(sz||15)+'px system-ui';ctx.textAlign='center';ctx.fillText(s,x,y);ctx.restore()}
+function dots(al){for(const n in DP){const p=dp(n);ctx.save();ctx.globalAlpha=al[n]==null?1:al[n];ctx.fillStyle=n=='z'?G:'#e8e8e8';ctx.beginPath();ctx.arc(p[0],p[1],8,0,7);ctx.fill();ctx.restore();label(n,al[n]==null?1:al[n])}}
+function wob(p,x,y,c){ctx.save();ctx.strokeStyle=c;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x-9,y-9);ctx.lineTo(x+9,y+9);ctx.moveTo(x+9,y-9);ctx.lineTo(x-9,y+9);ctx.globalAlpha=p;ctx.stroke();ctx.restore()}
+function draw(now){const dt=Math.min(.05,(now-lastT)/1000);lastT=now;tm+=dt;cur+=(tv-cur)*Math.min(1,dt*3.2);if(Math.abs(tv-cur)<.001)cur=tv;
+ const age=(now-sceneStart)/1000,intro=ease(Math.min(1,age/.9)),c=ease(cur);
+ if(play){if(sc>0&&sc<3&&age>1.6&&tv==0)tv=1,updTg();if(age>(sc==0?3.5:sc==3?5:6.5)){if(sc==3){play=false;pl.textContent='▶ Play'}else setScene(sc+1)}}
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W_,H_);
+ // highlight edges
+ let lit={};
+ if(sc==0){lit={k:.35,e:.35,z:1,y:1,x:1};if(Math.sin(tm*2)>0)lit={k:1,y:1,e:1,z:1,x:.5}}
+ else if(sc==1){const s=c>.5?Math.sin(tm*3)>0:true;lit={k:1,e:1,x:s?1:.25,y:s?.25:1};if(c>.5&&false);}
+ else if(sc==2){const ph=Math.floor(tm*1.2)%3;lit={k:ph<2?1:.25,e:ph<2?1:.25,x:ph==0?1:.25,y:ph==1?1:.25,z:ph==2?1:.25}}
+ else{const ph=Math.floor(tm*1.2)%3;lit={k:ph<2?1:.25,e:ph<2?1:.25,x:ph==0?1:.25,y:ph==1?1:.25,z:ph==2?1:.25}}
+ for(const n in E)drawEdge(n,(lit[n]==null?.25:lit[n])*intro,(lit[n]||0)>.9);
+ drawNodes();
+ // x~y marker on top
+ const cm=pt('b'),cc=pt('c'),mid=[(cm[0]+cc[0])/2,cm[1]];
+ if(sc<=1||sc==3){txt('x ∼ y',mid[0],H_*.2+.18*H_*0+ (-H_*.17),O,15,intro)}
+ txt('paths  a → d',W_*.5,H_*.62,M,14,intro);
+ ctx.strokeStyle='#ffffff1a';ctx.beginPath();ctx.moveTo(W_*.08,H_*.65);ctx.lineTo(W_*.92,H_*.65);ctx.stroke();
+ const a=intro;
+ if(sc==0){dots({kxe:.3*a,kye:a,z:a});arcB('kye','z',55,Y,a);const m=[(dp('kye')[0]+dp('z')[0])/2,dp('kye')[1]-27];txt('given: kye ∼ z',m[0],m[1]-10,Y,14,a)
+  txt('x ∼ y  (given, in the graph above)',W_*.5,H_*.58,O,13,a*0)}
+ else if(sc==1){dots({});
+  const m=dp('kxe'),m2=dp('kye'),mx=(m[0]+m2[0])/2;
+  arcB('kye','z',55,Y,1,0);txt('given',(dp('kye')[0]+dp('z')[0])/2,dp('kye')[1]-37,Y,13);
+  if(c>0)arcB('kxe','kye',55,O,c);
+  if(c>.8)txt('kxe ≈ kye',mx,m[1]-70,O,15,(c-.8)*5);
+  const f=1-c;if(f>0){wob(f,mx,m[1]-8,R);txt('x ∼ y, yet kxe and kye unrelated!',mx,m[1]-52,R,14,f);txt('"equal" parts swap → "different" path',mx,m[1]-34,R,13,f)}}
+ else if(sc==2){dots({});
+  arcB('kxe','kye',55,O,1);arcB('kye','z',55,Y,1);
+  const mid2=[(dp('kxe')[0]+dp('z')[0])/2,dp('kxe')[1]];
+  if(c>0){arcB('kxe','z',120,G,c,0,3);if(c>.9){txt('kxe ≈ z',mid2[0],mid2[1]-140,G,16,(c-.9)*10)}
+   for(const n in DP){const p=dp(n);ctx.save();ctx.globalAlpha=c*.8;ctx.strokeStyle=P;ctx.lineWidth=2;ctx.beginPath();ctx.arc(p[0],p[1]+2,17,Math.PI*.15,Math.PI*.85,false);ctx.stroke();ctx.restore()}
+   txt('↺ reflexive   ⇄ symmetric   ⤳ transitive',W_*.5,H_*.98,G,13,c)}
+  const f=1-c;if(f>0){ctx.save();ctx.globalAlpha=f;ctx.strokeStyle=R;ctx.setLineDash([6,6]);ctx.lineWidth=2.5;const A=dp('kxe'),Bp=dp('z');ctx.beginPath();ctx.moveTo(A[0],A[1]-10);ctx.quadraticCurveTo(W_*.5,A[1]-170,Bp[0],Bp[1]-10);ctx.stroke();ctx.restore();wob(f,W_*.5,dp('kxe')[1]-87,R);txt('kxe ≈ kye ∼ z but kxe, z unrelated: not an equivalence!',W_*.5,H_*.62+0,R,13,f*0)
+   txt('not an equivalence relation',W_*.5,dp('kxe')[1]-112,R,14,f)}}
+ else{dots({});
+  const A=dp('kxe'),Bp=dp('z');const pul=.5+.5*Math.sin(tm*2);ctx.save();ctx.fillStyle='rgba(131,193,103,'+(.08+.06*pul)+')';ctx.strokeStyle=G;ctx.lineWidth=2.5;ctx.beginPath();const r=36,x0=A[0]-60,x1=Bp[0]+60,y=A[1];ctx.moveTo(x0+r,y-r);ctx.lineTo(x1-r,y-r);ctx.arc(x1-r,y,r,-Math.PI/2,Math.PI/2);ctx.lineTo(x0+r,y+r);ctx.arc(x0+r,y,r,Math.PI/2,Math.PI*1.5);ctx.globalAlpha=intro;ctx.fill();ctx.stroke();ctx.restore();
+  txt('one equivalence class: [z] = { kxe, kye, z }',W_*.5,A[1]-52,G,15,intro);
+  // loop diagram
+  const lx=W_*.5,ly=H_*.45,rr=Math.min(W_*.12,60);const names=['1 given pairs','2 compose','3 equivalence'],cl=[M,O,G];
+  for(let i=0;i<3;i++){const an=-Math.PI/2+i*2*Math.PI/3+tm*.4,p=[lx+rr*2.2*Math.cos(an),ly+rr*.75*Math.sin(an)];const lit2=((Math.floor(tm*1.2))%3==i);ctx.save();ctx.globalAlpha=intro*(lit2?1:.45);ctx.fillStyle=cl[i];ctx.beginPath();ctx.arc(p[0],p[1],6,0,7);ctx.fill();ctx.restore();txt(names[i],p[0],p[1]+(Math.sin(an)>0?24:-12),cl[i],13,intro*(lit2?1:.5))}
+  txt('repeat ↻ until nothing new',lx,ly+4,Y,14,intro)}
+ requestAnimationFrame(draw)}
+setScene(0);requestAnimationFrame(draw);
+</script></body></html>

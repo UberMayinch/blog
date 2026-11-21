@@ -1,0 +1,187 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="window.__kx&&window.__kx()"></script>
+<style>
+html,body{margin:0;background:#14161b;color:#e8e8e8;font-family:system-ui,sans-serif}
+#wrap{max-width:1100px;margin:0 auto;padding:10px 14px 16px}
+canvas{width:100%;display:block;border-radius:8px;background:#14161b}
+#cap{font-size:18px;text-align:center;margin:10px 0 4px;min-height:26px}
+#fm{text-align:center;min-height:40px;font-size:19px;color:#e8e8e8;overflow-x:auto}
+#ctl{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:8px}
+button{background:#232832;color:#e8e8e8;border:1px solid #3a4150;border-radius:6px;padding:7px 14px;font-size:15px;cursor:pointer}
+button:hover{background:#2e3542}
+#ind{color:#9aa0a6;min-width:50px;text-align:center}
+#flip{display:none;border-color:#ff77b4;color:#ff77b4}
+</style></head><body><div id="wrap">
+<canvas id="cv"></canvas>
+<div id="cap"></div><div id="fm"></div>
+<div id="ctl"><button id="prev">◀ Prev</button><span id="ind">1 / 5</span><button id="next">Next ▶</button><button id="play">▶ Play</button><button id="flip">⇄ Flip C ↔ Cᵒᵖ</button></div>
+</div>
+<script>
+const COL={blue:'#58c4dd',yellow:'#f4d345',green:'#83c167',red:'#fc6255',pink:'#ff77b4',grey:'#888',txt:'#e8e8e8',mut:'#9aa0a6'};
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W=800,H=480,DPR=1;
+function resize(){DPR=window.devicePixelRatio||1;W=cv.parentElement.clientWidth;H=Math.max(320,Math.min(0.6*W,0.8*innerHeight));cv.style.height=H+'px';cv.width=W*DPR;cv.height=H*DPR;}
+addEventListener('resize',resize);resize();
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+// state
+const gmap=[0,0,1], LET='AB';
+let f=[0,2], hsel=1, rsel=-1, flip=0, flipT=0, fidx=[0,2];
+let cidx=[0,0]; cidx[0]=gmap[0];cidx[1]=gmap[2];
+let scene=0, prev=-1, tr=1, st=0, pst=0, playing=false, playTimer=0;
+const caps=[
+"A probe f: c→x lands in x. Compose with g and it lands in y. Click points of c to re-aim.",
+"Push every probe forward at once. Different probes of x can merge into one probe of y.",
+"Observations of y pull back to observations of x — now the induced map runs backwards.",
+"Pullback is pushforward in the opposite category: flip every arrow and it reads left-to-right again.",
+"Pushforward keeps the order of composition; pullback reverses it. That reversal is 'contravariant'."];
+const fms=[
+"\\color{#58c4dd}{f}:c\\to x,\\quad \\color{#f4d345}{g}:x\\to y,\\quad \\color{#83c167}{g\\circ f}:c\\to y",
+"\\color{#f4d345}{C(c,g)}:C(c,x)\\to C(c,y),\\quad \\color{#58c4dd}{f}\\mapsto \\color{#83c167}{g\\circ f}",
+"\\color{#f4d345}{C(g,d)}:C(y,d)\\to C(x,d),\\quad \\color{#ff77b4}{h}\\mapsto \\color{#ff77b4}{h}\\circ \\color{#f4d345}{g}",
+"\\color{#ff77b4}{h}\\circ \\color{#f4d345}{g}\\;=\\;\\color{#f4d345}{g^{op}}\\circ \\color{#ff77b4}{h^{op}}\\quad\\text{(in } C^{op}\\text{)}",
+"(k\\circ g)_*=k_*\\circ g_*\\qquad (k\\circ g)^*=g^*\\circ k^*"];
+function renderFm(){const el=document.getElementById('fm');try{if(window.katex){katex.render(fms[scene],el,{throwOnError:false});return}}catch(e){}el.textContent=fms[scene].replace(/\\color\{[^}]*\}/g,'').replace(/[\\{}]/g,'');}
+window.__kx=renderFm;
+function setScene(n){n=cl(n,0,caps.length-1);if(n===scene)return;prev=scene;pst=st;scene=n;tr=0;st=0;rsel=-1;
+ document.getElementById('cap').textContent=caps[n];document.getElementById('ind').textContent=(n+1)+' / '+caps.length;
+ document.getElementById('flip').style.display=n===3?'inline-block':'none';renderFm();if(n===3){flipT=0;}}
+document.getElementById('prev').onclick=()=>{setScene(scene-1)};
+document.getElementById('next').onclick=()=>{setScene(scene+1)};
+document.getElementById('play').onclick=togglePlay;
+document.getElementById('flip').onclick=()=>{flipT=flipT?0:1};
+function togglePlay(){playing=!playing;playTimer=0;document.getElementById('play').textContent=playing?'❚❚ Pause':'▶ Play';}
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')setScene(scene+1);else if(e.key==='ArrowLeft')setScene(scene-1);else if(e.code==='Space'){e.preventDefault();togglePlay();}});
+document.getElementById('cap').textContent=caps[0];renderFm();
+// drawing helpers
+function txt(s,x,y,c,sz,al,bold){ctx.fillStyle=c;ctx.font=(bold?'600 ':'')+sz+'px system-ui,sans-serif';ctx.textAlign=al||'center';ctx.textBaseline='middle';ctx.fillText(s,x,y);}
+function arrow(x1,y1,x2,y2,col,w,p,bow,al){p=p===undefined?1:p;if(p<=0.01)return;bow=bow||0;
+ const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy)||1,cx=(x1+x2)/2-dy/L*bow,cy=(y1+y2)/2+dx/L*bow;
+ const q=t=>[(1-t)*(1-t)*x1+2*(1-t)*t*cx+t*t*x2,(1-t)*(1-t)*y1+2*(1-t)*t*cy+t*t*y2];
+ ctx.save();if(al!==undefined)ctx.globalAlpha*=al;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round';
+ ctx.beginPath();for(let i=0;i<=24;i++){const t=p*i/24,[a,b]=q(t);i?ctx.lineTo(a,b):ctx.moveTo(a,b);}ctx.stroke();
+ if(p>0.9){const [a,b]=q(p),[a0,b0]=q(p-0.04);const ang=Math.atan2(b-b0,a-a0),s=6+w*1.5;ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(a-s*Math.cos(ang-.4),b-s*Math.sin(ang-.4));ctx.lineTo(a-s*Math.cos(ang+.4),b-s*Math.sin(ang+.4));ctx.closePath();ctx.fill();}
+ ctx.restore();}
+function dot(x,y,r,c,glow){ctx.save();if(glow){ctx.shadowColor=c;ctx.shadowBlur=14;}ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.restore();}
+function blob(cx,cy,rx,ry,label){ctx.strokeStyle='#ffffff33';ctx.lineWidth=1.5;ctx.fillStyle='#ffffff08';ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,7);ctx.fill();ctx.stroke();txt(label,cx,cy-ry-16,COL.txt,20,'center',true);}
+let hits=[];
+const RC=n=>'rgb('+n+')';
+// scene 1
+function scene1(){
+ const cxs=[.16*W,.5*W,.84*W],my=.5*H,sx=.16*H,sy=.1*H,rx=Math.max(46,.09*W);
+ blob(cxs[0],my,rx,.2*H,'c');blob(cxs[1],my,rx,.3*H,'x');blob(cxs[2],my,rx,.2*H,'y');
+ const cp=i=>[cxs[0],my+(i?sy:-sy)],xp=j=>[cxs[1],my+(j-1)*sx],yp=k=>[cxs[2],my+(k?sy:-sy)];
+ const a=ease(cl(st/.8));
+ for(let j=0;j<3;j++){const A=xp(j),B=yp(gmap[j]);arrow(A[0]+10,A[1],B[0]-10,B[1],COL.yellow,2,a,0,.8);}
+ txt('g',cxs[1]+(cxs[2]-cxs[1])/2,my-.26*H,COL.yellow,20,'center',true);
+ for(let i=0;i<2;i++){const A=cp(i),y=my+(fidx[i]-1)*sx;arrow(A[0]+8,A[1],cxs[1]-10,y,COL.blue,3,a,0);}
+ const gp=ease(cl((st-.9)/1));
+ for(let i=0;i<2;i++){const A=cp(i),k=cidx[i],B=yp(0),yy=my+(k?sy:-sy);arrow(A[0],A[1]+10,cxs[2],yy+(k?12:-12)*0+10,COL.green,3.5,gp,.35*H+ i*20,1);}
+ for(let i=0;i<2;i++){const A=cp(i);dot(A[0],A[1],7,COL.blue,true);txt('c'+(i+1),A[0]-24,A[1],COL.mut,14);hits.push({x:A[0],y:A[1],r:22,fn:()=>{f[i]=(f[i]+1)%3}});}
+ for(let j=0;j<3;j++){const A=xp(j);dot(A[0],A[1],6,'#cfd3d8');txt(j+1,A[0]+(f.includes(j)?18:0)*0-20,A[1]-0,COL.mut,14);}
+ for(let k=0;k<2;k++){const A=yp(k);dot(A[0],A[1],6,'#cfd3d8');txt(LET[k],A[0]+20,A[1],COL.mut,14);}
+ txt('f (probe)',cxs[0]+(cxs[1]-cxs[0])/2,my-.31*H,COL.blue,18,'center',true);
+ txt('g∘f',cxs[1]+(cxs[2]-cxs[0]-(cxs[1]-cxs[0]))*0+0,.93*H,COL.green,20,'center',true);
+ txt('click a point of c to change where the probe f lands',cxs[1],.03*H+6,COL.mut,13);
+}
+// column sets
+function colset(n,x,top,bot){const a=[];for(let i=0;i<n;i++)a.push([x,top+(bot-top)*(n==1?.5:i/(n-1))]);return a;}
+function scene2(){
+ const L=colset(9,.3*W,.12*H,.86*H),R=colset(4,.7*W,.2*H,.78*H);
+ const fi=f[0]*3+f[1],ri=gmap[f[0]]*2+gmap[f[1]];
+ txt('C(c, x)',.3*W,.04*H,COL.blue,20,'center',true);txt('C(c, y)',.7*W,.04*H,COL.green,20,'center',true);
+ txt('C(c, g)',.5*W,.4*H,COL.yellow,18,'center',true);arrow(.42*W,.45*H,.58*W,.45*H,COL.yellow,2.5,ease(cl(st)),0);
+ for(let i=0;i<9;i++){const a=Math.floor(i/3),b=i%3,j=gmap[a]*2+gmap[b];const p=ease(cl(st*1.3-i*.05));
+  const sel=i===fi,fib=rsel>=0&&j===rsel;const A=L[i],B=R[j];
+  const al=sel?1:fib?.9:(rsel>=0?.1:.3);
+  arrow(A[0]+10,A[1],B[0]-10,B[1],sel?COL.green:fib?COL.yellow:COL.yellow,sel?3.5:fib?2.5:1.5,p,0,al);}
+ for(let i=0;i<9;i++){const a=Math.floor(i/3),b=i%3,j=gmap[a]*2+gmap[b],sel=i===fi,fib=rsel>=0&&j===rsel;
+  dot(L[i][0],L[i][1],sel?8:6,sel?COL.blue:fib?COL.yellow:'#9aa0a6',sel||fib);txt('('+(a+1)+','+(b+1)+')',L[i][0]-16,L[i][1],sel?COL.blue:COL.mut,13,'right');
+  hits.push({x:L[i][0],y:L[i][1],r:14,fn:()=>{f=[a,b];rsel=-1}});}
+ for(let j=0;j<4;j++){const sel=j===ri||j===rsel;dot(R[j][0],R[j][1],sel?8:6,j===ri?COL.green:j===rsel?COL.yellow:'#9aa0a6',sel);txt('('+LET[j>>1]+','+LET[j&1]+')',R[j][0]+16,R[j][1],j===ri?COL.green:COL.mut,13,'left');
+  hits.push({x:R[j][0],y:R[j][1],r:16,fn:()=>{rsel=rsel===j?-1:j}});}
+ txt('9 probes → 4: g forgets the difference 1 vs 2.  Click a dot on either side.',.5*W,.95*H,COL.mut,13);
+}
+function scene3(){
+ const L=colset(8,.3*W,.14*H,.84*H),R=colset(4,.7*W,.22*H,.76*H);
+ txt('C(x, d)',.3*W,.04*H,COL.pink,20,'center',true);txt('C(y, d)',.7*W,.04*H,COL.pink,20,'center',true);
+ txt('C(g, d)  = – ∘ g',.5*W,.36*H,COL.yellow,17,'center',true);arrow(.58*W,.42*H,.42*W,.42*H,COL.yellow,2.5,ease(cl(st)),0);
+ const img=h=>((h>>1)*4+(h>>1)*2+(h&1));
+ const im=new Set([0,1,2,3].map(img));
+ for(let h=0;h<4;h++){const A=R[h],B=L[img(h)],p=ease(cl(st*1.3-h*.1)),sel=h===hsel;
+  arrow(A[0]-10,A[1],B[0]+10,B[1],COL.pink,sel?3.5:1.5,p,0,sel?1:.3);}
+ for(let i=0;i<8;i++){const b=i.toString(2).padStart(3,'0'),isI=im.has(i),sel=i===img(hsel);
+  dot(L[i][0],L[i][1],sel?8:6,sel?COL.pink:isI?'#cfd3d8':'#fc625588',sel);txt(b,L[i][0]-16,L[i][1],sel?COL.pink:isI?COL.mut:'#fc6255aa',13,'right');}
+ for(let h=0;h<4;h++){const sel=h===hsel;dot(R[h][0],R[h][1],sel?8:6,sel?COL.pink:'#cfd3d8',sel);
+  txt((h>>1)+''+(h&1),R[h][0]+16,R[h][1],sel?COL.pink:COL.mut,13,'left');hits.push({x:R[h][0],y:R[h][1],r:16,fn:()=>{hsel=h}});}
+ const h=hsel;txt('h = (A↦'+(h>>1)+', B↦'+(h&1)+')   ⟹   h∘g = ('+(h>>1)+','+(h>>1)+','+(h&1)+')',.5*W,.94*H,COL.pink,15);
+ txt('red: measurements of x that split 1 from 2 — no summary y can produce them',.7*W+0*W,.99*H-2,'#fc6255bb',12,'center');
+ ctx.save();txt('x —g→ y (coarse-grain: 1,2↦A, 3↦B)',.5*W,.015*H+8,COL.yellow,12);ctx.restore();
+}
+function scene4(){
+ const f1=flip,e=f1;const xs=[.15*W,.5*W,.85*W];
+ const px=.15*W+e*.7*W,pd=.85*W-e*.7*W,py=.5*W,yy=.38*H;
+ const X=[px,yy],Y=[py,yy],D=[pd,yy];
+ for(const [P,n] of [[X,'x'],[Y,'y'],[D,'d']]){dot(P[0],P[1],9,'#cfd3d8');txt(n,P[0],P[1]-24,COL.txt,22,'center',true);}
+ // C arrows: x->y, y->d, comp x->d ; Cop: y->x, d->y, d->x
+ const off=12;
+ function pair(A,B,colr,w,bow,l1,l2,labY){const a0=1-e,a1=e;
+  const dir=Math.sign(B[0]-A[0]);
+  arrow(A[0]+dir*off,A[1],B[0]-dir*off,B[1],colr,w,1,bow,a0);
+  arrow(B[0]-dir*off,B[1],A[0]+dir*off,A[1],colr,w,1,bow,a1);
+  ctx.save();ctx.globalAlpha=1-e;txt(l1,(A[0]+B[0])/2,labY,colr,19,'center',true);ctx.globalAlpha=e;txt(l2,(A[0]+B[0])/2,labY,colr,19,'center',true);ctx.restore();}
+ const p=ease(cl(st));ctx.save();ctx.globalAlpha*=p;
+ pair(X,Y,COL.yellow,3,0,'g','gᵒᵖ',yy-.09*H*0-.12*H+0*H);
+ pair(Y,D,COL.pink,3,0,'h','hᵒᵖ',yy-.12*H);
+ pair(X,D,COL.green,3,-.22*H*0-(Math.abs(D[0]-X[0])*0+0)-0,'h∘g','gᵒᵖ∘hᵒᵖ',yy+.25*H);
+ ctx.restore();
+ // flipped comp: arcs bow; use bow sign: draw second separately not needed
+ txt(e<.5?'Category C':'Opposite category Cᵒᵖ',.5*W,.08*H,e<.5?COL.txt:COL.pink,20,'center',true);
+ const m1=.62*H;
+ ctx.save();ctx.globalAlpha=1-e;txt('pullback: h  ↦  h∘g     (pre-compose with g)',.5*W,m1,COL.pink,18);txt('arrows of C point left→right: x→y→d, but the map on hom-sets goes against g',.5*W,m1+.08*H,COL.mut,14);ctx.restore();
+ ctx.save();ctx.globalAlpha=e;txt('pushforward: hᵒᵖ  ↦  gᵒᵖ∘hᵒᵖ     (post-compose with gᵒᵖ)',.5*W,m1,COL.pink,18);txt('same function — now it just post-composes, like any covariant hom functor C(d,–)',.5*W,m1+.08*H,COL.mut,14);ctx.restore();
+ txt('in Cᵒᵖ the probe is hᵒᵖ: d→y, pushed along gᵒᵖ: y→x to land in x',.5*W,.9*H,COL.mut,14);
+ txt('press “⇄ Flip” to toggle',.5*W,.96*H,COL.mut,12);
+}
+function scene5(){
+ const us=[.3,.55,.8].map(u=>u*W),rows=[.14,.5,.86].map(v=>v*H);
+ const bw=.15*W,bh=.1*H;
+ const labs=[['x','y','z'],['C(c,x)','C(c,y)','C(c,z)'],['C(x,d)','C(y,d)','C(z,d)']];
+ const cols=['#cfd3d8',COL.blue,COL.pink];
+ txt('objects & maps',.02*W,rows[0]-.09*H,COL.mut,13,'left');txt('probes: push →',.02*W,rows[1]-.09*H,COL.blue,13,'left');txt('observations: pull ←',.02*W,rows[2]-.09*H,COL.pink,13,'left');
+ for(let r=0;r<3;r++){
+  for(let i=0;i<3;i++){const x=us[i],y=rows[r];ctx.strokeStyle=cols[r]+'88';ctx.lineWidth=1.5;ctx.fillStyle='#ffffff08';
+   ctx.beginPath();ctx.roundRect?ctx.roundRect(x-bw/2,y-bh/2,bw,bh,8):ctx.rect(x-bw/2,y-bh/2,bw,bh);ctx.fill();ctx.stroke();txt(labs[r][i],x,y,cols[r],17,'center',true);}
+  for(let i=0;i<2;i++){const p=ease(cl(st*1-r*.4-i*.25));const a=us[i]+bw/2+6,b=us[i+1]-bw/2-6,y=rows[r];
+   const nm=i?'k':'g';const colr=i?COL.green:COL.yellow;
+   if(r===2)arrow(b,y,a,y,colr,3,p,0);else arrow(a,y,b,y,colr,3,p,0);
+   const lab=r===0?nm:r===1?nm+'*'.replace('*','')+'∘–':'–∘'+nm;
+   txt(lab,(a+b)/2,y-.05*H-4,colr,16,'center',true);}
+ }
+ const p=ease(cl(st-1.2));ctx.save();ctx.globalAlpha=p;
+ arrow(us[0],rows[1]+.08*H,us[2],rows[1]+.08*H,COL.green,2,1,-0.07*H,.9);
+ txt('(k∘g)∘– = k∘(g∘–)  same order',.5*W+.05*W,rows[1]+.19*H,COL.green,14);
+ arrow(us[2],rows[2]-.07*H,us[0],rows[2]-.07*H,COL.green,2,1,.07*H,.9);
+ txt('–∘(k∘g) = (–∘k)… first k*, then g*: order reverses',.55*W,rows[2]-.19*H,COL.green,14);
+ ctx.restore();
+}
+const draws=[scene1,scene2,scene3,scene4,scene5];
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;st+=dt;
+ const k=1-Math.exp(-dt*9);for(let i=0;i<2;i++){fidx[i]+=(f[i]-fidx[i])*k;cidx[i]+=(gmap[f[i]]-cidx[i])*k;}
+ flip+=(flipT-flip)*(1-Math.exp(-dt*3.2));if(Math.abs(flip-flipT)<.001)flip=flipT;
+ if(scene===3&&st>1.6&&st-dt<=1.6&&!window.__fl){flipT=1;window.__fl=1;}
+ if(tr<1)tr=Math.min(1,tr+dt/.7);
+ if(playing){playTimer+=dt;if(playTimer>7){playTimer=0;if(scene<caps.length-1)setScene(scene+1);else togglePlay();}}
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle='#14161b';ctx.fillRect(0,0,W,H);
+ hits=[];
+ if(tr<1&&prev>=0){ctx.globalAlpha=1-ease(tr);const keep=st;st=pst;const h0=hits;draws[prev]();hits=[];st=keep;}
+ ctx.globalAlpha=ease(tr);draws[scene]();ctx.globalAlpha=1;
+ requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];}
+function hitAt(e){const[x,y]=pos(e);let b=null,bd=1e9;for(const h of hits){const d=Math.hypot(h.x-x,h.y-y);if(d<h.r&&d<bd){bd=d;b=h;}}return b;}
+cv.addEventListener('click',e=>{const h=hitAt(e);if(h)h.fn();});
+cv.addEventListener('mousemove',e=>{cv.style.cursor=hitAt(e)?'pointer':'default';});
+window.__dbg=()=>({scene,f,hsel});
+</script></body></html>

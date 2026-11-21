@@ -1,0 +1,138 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" onload="window.renderF&&renderF()"></script>
+<style>
+body{margin:0;background:#14161b;color:#e8e8e8;font-family:system-ui,sans-serif}
+#w{max-width:1000px;margin:0 auto;padding:12px}
+canvas{width:100%;display:block;background:#14161b;border-radius:8px;touch-action:manipulation}
+#cap{font-size:20px;text-align:center;margin:10px 0 4px;min-height:28px}
+#fm{text-align:center;min-height:44px;font-size:22px;color:#e8e8e8}
+#ctl,#ex{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:8px 0;color:#9aa0a6;font-size:14px}
+button,select{background:#232733;color:#e8e8e8;border:1px solid #3a4050;border-radius:6px;padding:7px 14px;font-size:14px;cursor:pointer}
+button:hover{background:#2d3345}input[type=range]{accent-color:#58c4dd;width:140px}
+#hint{text-align:center;color:#9aa0a6;font-size:13px}
+</style></head><body><div id="w">
+<canvas id="c"></canvas>
+<div id="cap"></div><div id="fm"></div>
+<div id="ex"><span id="gsw">Graph <span style="color:#58c4dd">G</span>: <select id="gsel"><option value="c4">square C₄</option><option value="c5" selected>pentagon C₅</option><option value="k4">complete K₄</option><option value="w5">wheel W₅</option></select></span>
+<span id="ksw">colours <b style="color:#ffff00">k</b> = <input id="k" type="range" min="2" max="4" value="3"> <b id="kv" style="color:#ffff00">3</b></span>
+<button id="solve">Find a colouring</button></div>
+<div id="ctl"><button id="prev">◀ Prev</button><span id="ind">1 / 3</span><button id="next">Next ▶</button><button id="play">▶ Play</button></div>
+<div id="hint">Click a node of G to send it to the next node of the target. ←/→ scenes, Space plays.</div>
+</div>
+<script>
+const PAL=['#58c4dd','#fc6255','#83c167','#f4d345','#ff77b4'];
+const cv=document.getElementById('c'),cx=cv.getContext('2d');
+let W=600,Ht=360,dpr=1;
+function resize(){dpr=window.devicePixelRatio||1;W=cv.clientWidth||600;Ht=Math.max(320,Math.min(W*0.6,innerHeight*0.8));cv.width=W*dpr;cv.height=Ht*dpr;cv.style.height=Ht+'px'}
+addEventListener('resize',resize);resize();
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function circ(n,off){return [...Array(n)].map((_,i)=>{const a=off+i*2*Math.PI/n;return [Math.cos(a),Math.sin(a)]})}
+const GR={
+ path:{p:[[-1,0.5],[-.35,-.5],[.35,.5],[1,-.5]],e:[[0,1],[1,2],[2,3]],n:['a','b','c','d']},
+ c4:{p:circ(4,Math.PI/4),e:[[0,1],[1,2],[2,3],[3,0]]},
+ c5:{p:circ(5,-Math.PI/2),e:[[0,1],[1,2],[2,3],[3,4],[4,0]]},
+ k4:{p:circ(4,Math.PI/4),e:[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]]},
+ w5:{p:[...circ(5,-Math.PI/2),[0,0]],e:[[0,1],[1,2],[2,3],[3,4],[4,0],[5,0],[5,1],[5,2],[5,3],[5,4]]}
+};
+function Kk(k){const e=[];for(let i=0;i<k;i++)for(let j=i+1;j<k;j++)e.push([i,j]);return{p:circ(k,-Math.PI/2),e,n:[...Array(k)].map((_,i)=>'')}}
+const H1={p:[[-.9,-.5],[0,-.9],[.2,.1],[-.7,.8],[.95,.5]],e:[[0,1],[1,2],[2,0],[2,3],[2,4]]};
+let scene=0,G,H,f,show=1,fade=null,playing=false,playT=0,kval=3,gname='c5';
+const titles=[
+ "A homomorphism sends nodes to nodes so that every edge lands on an edge.",
+ "Target K_k: every two distinct nodes joined, no loops. So adjacent nodes must go to different nodes.",
+ "So a k-colouring of G is exactly a homomorphism G → K_k. Try other graphs and k."];
+let disp=[]; // displayed arrow end positions
+function setup(){
+ if(scene==0){G=GR.path;H=H1;f=[0,1,1,2]}
+ else if(scene==1){G=GR.c5;H=Kk(3);f=[0,1,0,1,2].map(x=>x%3)}
+ else{G=GR[gname];H=Kk(kval);f=G.p.map((_,i)=>i%kval)}
+ f=f.map(x=>x%H.p.length);disp=null;
+ document.getElementById('gsw').style.display=document.getElementById('ksw').style.display=scene==2?'':'none';
+ document.getElementById('solve').style.display=scene>=1?'':'none';
+ document.getElementById('ind').textContent=(scene+1)+' / 3';
+ document.getElementById('cap').textContent=titles[scene];
+ renderF();
+}
+function go(s){if(fade||s<0||s>2||s==scene)return;fade={t:0,fn:()=>{scene=s;setup()}}}
+function rebuild(){if(fade)return;fade={t:0,fn:setup}}
+function lay(){ // node screen positions
+ const R=Math.min(W*0.2,Ht*0.36);
+ const gp=G.p.map(q=>[W*0.24+q[0]*R,Ht*0.5+q[1]*R]);
+ const hp=H.p.map(q=>[W*0.76+q[0]*R,Ht*0.5+q[1]*R]);return{gp,hp,R}
+}
+function hasE(a,b){return a!=b&&H.e.some(e=>(e[0]==a&&e[1]==b)||(e[0]==b&&e[1]==a))}
+function edgeOK(e){return hasE(f[e[0]],f[e[1]])}
+function homs(){const n=G.p.length,k=H.p.length;let c=0,a=new Array(n);
+ (function r(i){if(i==n){c++;return}for(let v=0;v<k;v++){let ok=true;for(const e of G.e){const u=e[0],w=e[1];if(w==i&&u<i&&a[u]==v||u==i&&w<i&&a[w]==v){ok=false;break}}if(ok){a[i]=v;r(i+1)}}})(0);return c}
+function solve(){const n=G.p.length,k=H.p.length,a=[];
+ function r(i){if(i==n)return true;for(let v=0;v<k;v++){if(G.e.every(e=>!(e[1]==i&&e[0]<i&&a[e[0]]==v||e[0]==i&&e[1]<i&&a[e[1]]==v))){a[i]=v;if(r(i+1))return true}}return false}
+ return r(0)?a:null}
+function tex(s){return s}
+let lastF='';
+function renderF(){
+ const el=document.getElementById('fm');let s;
+ const C=(c,t)=>`{\\color{${c}}{${t}}}`;
+ if(scene==0){const ok=G.e.every(edgeOK);s=`${C('#58c4dd','f')}:${C('#58c4dd','G')}\\to H\\ \\text{is a homomorphism: }${ok?'\\color{#83c167}{\\text{yes ✓}}':'\\color{#fc6255}{\\text{no — an edge is not preserved}}'}`}
+ else if(scene==1){s=`\\{${C('#83c167','k\\text{-colourings of }G')}\\}\\;\\cong\\;\\mathrm{Hom}(${C('#58c4dd','G')},${C('#ffff00','K_k')})`}
+ else{const n=homs(),bad=G.e.filter(e=>!edgeOK(e)).length;s=`|\\mathrm{Hom}(${C('#58c4dd','G')},${C('#ffff00','K_{'+kval+'}')})|=${C('#83c167',n)}\\quad${n?'':'\\color{#fc6255}{\\Rightarrow\\ \\text{no }'+kval+'\\text{-colouring}}'}`}
+ if(window.katex){try{katex.render(s,el,{throwOnError:false});return}catch(e){}}
+ el.textContent=s.replace(/\\[a-z]+|[{}]/g,'')
+}
+function arrow(x1,y1,x2,y2,col,al){
+ const mx=(x1+x2)/2,my=(y1+y2)/2-30;
+ cx.strokeStyle=col;cx.globalAlpha=al*0.7;cx.lineWidth=2;cx.setLineDash([6,5]);cx.beginPath();cx.moveTo(x1,y1);cx.quadraticCurveTo(mx,my,x2,y2);cx.stroke();cx.setLineDash([]);
+ const a=Math.atan2(y2-my,x2-mx);cx.beginPath();cx.moveTo(x2,y2);cx.lineTo(x2-10*Math.cos(a-.4),y2-10*Math.sin(a-.4));cx.lineTo(x2-10*Math.cos(a+.4),y2-10*Math.sin(a+.4));cx.closePath();cx.fillStyle=col;cx.fill();
+}
+function nodeColor(i){return PAL[i%PAL.length]}
+function draw(){
+ cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,W,Ht);
+ const {gp,hp,R}=lay();
+ if(!disp||disp.length!=f.length)disp=f.map(v=>hp[v].slice());
+ cx.lineCap='round';cx.globalAlpha=show;
+ cx.font='15px system-ui';cx.textAlign='center';cx.fillStyle='#9aa0a6';
+ cx.fillText('G',gp[0][0]-0,Ht*0.5-R-34);cx.fillText(scene==0?'H':'K'+kval.toString().replace('3','₃').replace('4','₄').replace('2','₂'),W*0.76,Ht*0.5-R-34);
+ // arrows
+ G.p.forEach((q,i)=>{arrow(gp[i][0]+16,gp[i][1],disp[i][0]-17,disp[i][1],nodeColor(f[i]),show)});
+ // H edges
+ cx.globalAlpha=show;cx.strokeStyle='#ffffff55';cx.lineWidth=3;
+ H.e.forEach(e=>{cx.beginPath();cx.moveTo(...hp[e[0]]);cx.lineTo(...hp[e[1]]);cx.stroke()});
+ // G edges
+ G.e.forEach(e=>{const ok=edgeOK(e);cx.strokeStyle=ok?'#83c167':'#fc6255';cx.lineWidth=ok?3:4;cx.globalAlpha=show;
+  cx.beginPath();cx.moveTo(...gp[e[0]]);cx.lineTo(...gp[e[1]]);cx.stroke();
+  if(!ok){const mx=(gp[e[0]][0]+gp[e[1]][0])/2,my=(gp[e[0]][1]+gp[e[1]][1])/2;cx.fillStyle='#fc6255';cx.font='bold 18px system-ui';cx.fillText('✗',mx+10,my-6)}});
+ // nodes
+ const nr=15;
+ H.p.forEach((q,i)=>{cx.globalAlpha=show;cx.fillStyle=nodeColor(i);cx.beginPath();cx.arc(hp[i][0],hp[i][1],nr,0,7);cx.fill();cx.strokeStyle='#14161b';cx.lineWidth=2;cx.stroke()});
+ G.p.forEach((q,i)=>{cx.fillStyle=nodeColor(f[i]);cx.beginPath();cx.arc(gp[i][0],gp[i][1],nr,0,7);cx.fill();cx.strokeStyle='#e8e8e8';cx.lineWidth=2;cx.stroke();
+  if(G.n){cx.fillStyle='#14161b';cx.font='bold 14px system-ui';cx.fillText(G.n[i],gp[i][0],gp[i][1]+5)}});
+ cx.globalAlpha=1;
+ // label under
+ cx.font='14px system-ui';cx.fillStyle='#9aa0a6';cx.textAlign='center';
+ const bad=G.e.filter(e=>!edgeOK(e)).length;
+ cx.fillText(bad?bad+' edge'+(bad>1?'s':'')+' not preserved':'all edges preserved'+(scene>0?' — a proper colouring':''),W*0.5,Ht-14);
+}
+let last=performance.now(),lastBad=-1;
+function frame(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ if(fade){fade.t+=dt/0.8;if(fade.t<.5)show=1-ease(fade.t*2);else{if(fade.fn){fade.fn();fade.fn=null}show=ease((fade.t-.5)*2)}if(fade.t>=1){fade=null;show=1}}
+ const {hp}=lay();
+ if(disp&&disp.length==f.length)disp.forEach((d,i)=>{const t=hp[f[i]],k=1-Math.pow(.0005,dt);d[0]+=(t[0]-d[0])*k;d[1]+=(t[1]-d[1])*k});
+ if(playing){playT+=dt;if(playT>7){playT=0;if(scene<2)go(scene+1);else playing=false,upPlay()}}
+ draw();requestAnimationFrame(frame)
+}
+function upPlay(){document.getElementById('play').textContent=playing?'❚❚ Pause':'▶ Play'}
+cv.addEventListener('pointerdown',e=>{
+ if(fade)return;const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*Ht/r.height;
+ const {gp}=lay();let b=-1,bd=900;gp.forEach((q,i)=>{const d=(q[0]-x)**2+(q[1]-y)**2;if(d<bd){bd=d;b=i}});
+ if(b>=0){f[b]=(f[b]+1)%H.p.length;renderF()}
+});
+document.getElementById('prev').onclick=()=>go(scene-1);
+document.getElementById('next').onclick=()=>go(scene+1);
+document.getElementById('play').onclick=()=>{playing=!playing;playT=0;upPlay()};
+document.getElementById('gsel').onchange=e=>{gname=e.target.value;rebuild()};
+document.getElementById('k').oninput=e=>{kval=+e.target.value;document.getElementById('kv').textContent=kval;rebuild()};
+document.getElementById('solve').onclick=()=>{const a=solve();if(a){f=a;renderF()}else{document.getElementById('cap').textContent='No homomorphism G → K'+H.p.length+' exists: G needs more colours.';}};
+addEventListener('keydown',e=>{if(e.key=='ArrowRight')go(scene+1);else if(e.key=='ArrowLeft')go(scene-1);else if(e.key==' '){e.preventDefault();document.getElementById('play').click()}});
+setup();requestAnimationFrame(frame);
+</script></body></html>
