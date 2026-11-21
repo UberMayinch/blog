@@ -42,3 +42,21 @@ disableKinds = ["taxonomy", "term", "sitemap"]
     name = "About"
     pageRef = "/about"
     weight = 10
+
+# Socratech journal bundles carry interactive visuals as full HTML documents
+# (<bundle>/media/*.html, embedded via <iframe>). Hugo refuses .html under
+# content/ ("text/html" is not in security.allowContent), so serve them as
+# static files at the same path. Declaring mounts replaces the defaults, so
+# content and static are re-declared.
+[module]
+  [[module.mounts]]
+    source = "content"
+    target = "content"
+    files = ["! **/media/*.html"]
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "content"
+    target = "static"
+    files = ["**/media/*.html"]
