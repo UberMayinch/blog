@@ -1,0 +1,31 @@
+{{- /* Subscribe card: email (when [params.newsletter] action is set in
+       hugo.toml) and RSS. Used by the home Subscribe cell and post footers.
+       Context: the page. The email form posts straight to the provider (a
+       plain HTML form, no script), so it only renders once configured. */ -}}
+{{- $feed := "" -}}
+{{- with site.Home.OutputFormats.Get "rss" }}{{ $feed = .Permalink }}{{ end -}}
+{{- $nl := site.Params.newsletter | default dict -}}
+<div class="subscribe">
+  {{- with $nl.action }}
+  <form class="subscribe-row subscribe-form" action="{{ . }}" method="post" target="_blank">
+    <span class="support-icon">{{ partial "icon.html" "mail" }}</span>
+    <label class="subscribe-text">
+      <strong>Get new posts by email</strong>
+      <input type="email" name="{{ $nl.field | default "email" }}" placeholder="you@example.com" autocomplete="email" required>
+    </label>
+    <button type="submit" class="support-cta">Subscribe</button>
+  </form>
+  {{- end }}
+  {{- with $feed }}
+  <div class="subscribe-row">
+    <span class="support-icon">{{ partial "icon.html" "rss" }}</span>
+    <span class="subscribe-text">
+      <strong>Follow with RSS</strong>
+      <code class="subscribe-url">{{ . }}</code>
+    </span>
+    <button type="button" class="tb-btn" data-act="copy-feed" data-url="{{ . }}" title="Copy feed URL">{{ partial "icon.html" "copy" }}<span data-label>Copy</span></button>
+    <a class="tb-btn" href="https://feedly.com/i/subscription/feed/{{ . }}" target="_blank" rel="noopener" title="Follow in Feedly (free web reader)">Feedly</a>
+  </div>
+  <p class="subscribe-hint">A feed reader (Feedly, Inoreader, NetNewsWire) collects new posts from sites you follow. Paste the address above into one.</p>
+  {{- end }}
+</div>

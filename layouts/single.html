@@ -41,6 +41,10 @@
   </div>
   {{- $payload = merge $payload (dict "cells" (slice (dict "type" "markdown" "src" (printf "# %s" .Title)) (dict "type" "markdown" "src" (strings.TrimSpace .RawContent)))) -}}
   {{- end }}
+  <aside class="post-subscribe" aria-label="Subscribe">
+    <h2>Enjoyed this? Get the next post</h2>
+    {{ partial "subscribe.html" . }}
+  </aside>
   <script type="application/json" id="nb-data">{{ $payload | jsonify | safeJS }}</script>
 </article>
 {{ end }}

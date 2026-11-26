@@ -32,7 +32,7 @@
       <button type="button" class="ab-item is-active" data-act="toggle-sidebar" title="Explorer" aria-label="Toggle explorer">{{ partial "icon.html" "files" }}</button>
       <button type="button" class="ab-item" data-act="palette" title="Search (Ctrl+K)" aria-label="Search">{{ partial "icon.html" "search" }}</button>
       <span class="ab-spacer"></span>
-      {{- with site.Home.OutputFormats.Get "rss" }}<a class="ab-item" href="{{ .RelPermalink }}" title="RSS feed" aria-label="RSS feed">{{ partial "icon.html" "rss" }}</a>{{ end }}
+      <a class="ab-item" href="{{ "" | relURL }}#cell-4" title="Subscribe" aria-label="Subscribe by email or RSS">{{ partial "icon.html" "rss" }}</a>
       <a class="ab-item" href="{{ "about/" | relURL }}" title="About" aria-label="About">{{ partial "icon.html" "account" }}</a>
     </nav>
 

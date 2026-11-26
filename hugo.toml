@@ -19,6 +19,13 @@ disableKinds = ["taxonomy", "term", "sitemap"]
   email = "chinmay.sharma@research.iiit.ac.in"
   description = "rhizoMorphic: Chinmay Sharma's Technical Blog."
 
+# Email list. The subscribe form (layouts/_partials/subscribe.html) renders
+# only when action is set: paste the form action URL and email input name
+# from your provider's embed snippet (Buttondown: Settings → Embedding).
+# [params.newsletter]
+#   action = ""
+#   field = "email"
+
 [markup]
   [markup.highlight]
     # CSS classes, colored by static/css/chroma.css so the theme can toggle.

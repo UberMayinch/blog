@@ -187,6 +187,7 @@
       case "copy-cell": if (cell) copyCells([+cell.dataset.i], `cell ${cell.dataset.i}`).then(() => flash(btn)); break;
       case "link-cell": if (cell) copyCellLink(+cell.dataset.i).then(() => flash(btn)); break;
       case "toggle-theme": toggleTheme(); break;
+      case "copy-feed": copy(btn.dataset.url).then((ok) => { status(ok ? "Copied feed URL" : "Copy failed"); if (ok) flash(btn); }); break;
       case "close-tab": e.preventDefault(); e.stopPropagation(); closeTab(btn.closest(".tab")); break;
       default: return;
     }
@@ -290,8 +291,10 @@
     cmds.push({ title: "Go to home", desc: "", run: () => { location.href = $(".titlebar-brand").href; } });
     const about = $(".ab-item[title=About]");
     if (about) cmds.push({ title: "Go to about", desc: "", run: () => { location.href = about.href; } });
-    const rss = $(".ab-item[title='RSS feed']");
-    if (rss) cmds.push({ title: "Open RSS feed", desc: "", run: () => { location.href = rss.href; } });
+    const sub = $(".ab-item[title=Subscribe]");
+    if (sub) cmds.push({ title: "Subscribe", desc: "Email / RSS", run: () => { location.href = sub.href; } });
+    const feed = $("[data-act=copy-feed]");
+    if (feed) cmds.push({ title: "Copy RSS feed URL", desc: "", run: () => copy(feed.dataset.url).then((ok) => status(ok ? "Copied feed URL" : "Copy failed")) });
     return cmds;
   }
 

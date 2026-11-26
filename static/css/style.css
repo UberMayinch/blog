@@ -359,6 +359,27 @@ pre.out {
 :root[data-theme=dark] .support-cta { background: #238636; }
 .support-cta .icon { width: 13px; height: 13px; fill: currentColor; }
 .support-card:hover .support-cta { filter: brightness(1.1); }
+.subscribe { display: flex; flex-direction: column; gap: 8px; max-width: 560px; }
+.subscribe-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px;
+}
+.subscribe-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 200px; line-height: 1.35; }
+.subscribe-text strong { font-weight: 600; }
+.md .subscribe-url { font-size: 12px; color: var(--fg-muted); overflow-wrap: anywhere; background: none; padding: 0; }
+.subscribe-form input {
+  font: 13px var(--ui); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 100%;
+}
+.subscribe-form input:focus { outline: none; border-color: var(--focus); }
+.subscribe-form button { border: 0; cursor: pointer; font-family: inherit; }
+.subscribe-form button:hover { filter: brightness(1.1); }
+.subscribe .tb-btn { border: 1px solid var(--border); }
+.subscribe .tb-btn.is-done { color: var(--green); }
+.md .subscribe-hint, .subscribe-hint { margin: 0; font-size: 12px; color: var(--fg-muted); }
+.post-subscribe { margin: 32px 0 24px calc(var(--gutter) + 15px); padding: 20px 0 0; border-top: 1px solid var(--border); }
+.post-subscribe h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
 table.dataframe { border-collapse: collapse; font: 12px/1.5 var(--ui); }
 table.dataframe th, table.dataframe td { padding: 4px 12px; border: 0; text-align: left; }
 table.dataframe thead th { border-bottom: 1px solid var(--border); font-weight: 600; }
